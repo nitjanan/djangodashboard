@@ -1,3 +1,65 @@
 from django.contrib import admin
+from import_export.admin import ImportExportModelAdmin
+from import_export import fields, resources
+from import_export.widgets import ForeignKeyWidget
+from django.forms import CheckboxSelectMultiple, MultipleChoiceField, widgets
+from django.db import models
+from dbapp.models import BaseAffiliatedCompany, BaseAffiliatedCompany, BaseBranchCompany, BaseVisible, UserProfile, BaseCarType, BaseCarDepartment, BaseCar, BaseRepairType, BaseAPI
+from dbapp.forms import BaseCarAdminForm
 
 # Register your models here.
+class BaseAffiliatedCompanyAdmin(ImportExportModelAdmin):
+    list_display = ['id','name','name_th'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
+
+class BaseBranchCompanyAdmin(ImportExportModelAdmin):
+    list_display = ['id','code','affiliated', 'name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
+	
+class BaseVisibleAdmin(ImportExportModelAdmin):
+    list_display = ('name',)
+	
+	
+class UserProfileAdmin(ImportExportModelAdmin):
+    formfield_overrides = {
+        models.ManyToManyField: {'widget': CheckboxSelectMultiple},
+    }
+    autocomplete_fields = ['user']
+
+    list_display = ['user'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
+    search_fields = ['user__first_name']
+
+class BaseCarTypeAdmin(ImportExportModelAdmin):
+    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    search_fields = ['name',]
+
+class BaseCarDepartmentAdmin(ImportExportModelAdmin):
+    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    search_fields = ['name',]
+	
+
+class BaseCarAdmin(ImportExportModelAdmin):
+    autocomplete_fields = ['car_type',]
+
+    list_display = ['id','code','name', 'car_dep', 'car_type']#แสดงรายการสินค้าในรูปแบบตาราง
+    search_fields = ['code', 'name', 'car_type__name', 'car_dep__name']
+    form = BaseCarAdminForm
+
+class BaseRepairTypeAdmin(ImportExportModelAdmin):
+    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    search_fields = ['name']
+
+class BaseAPIAdmin(ImportExportModelAdmin):
+    list_display = ['id','url','username', 'password'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
+
+admin.site.register(BaseAffiliatedCompany, BaseAffiliatedCompanyAdmin)
+admin.site.register(BaseBranchCompany, BaseBranchCompanyAdmin)
+admin.site.register(BaseVisible, BaseVisibleAdmin)
+admin.site.register(UserProfile, UserProfileAdmin)
+admin.site.register(BaseCarType, BaseCarTypeAdmin)
+admin.site.register(BaseCarDepartment, BaseCarDepartmentAdmin)
+admin.site.register(BaseCar, BaseCarAdmin)
+admin.site.register(BaseRepairType, BaseRepairTypeAdmin)
+admin.site.register(BaseAPI, BaseAPIAdmin)

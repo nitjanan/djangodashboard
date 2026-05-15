@@ -1,26 +1,34 @@
 {% extends "base.html" %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}
-<title>หน้าแรกของเว็บไซต์</title>
+<title>Dashboard STG</title>
+{% endblock %}
+
+{% block css %}
+<style>
+  .row-click {
+    cursor: pointer;
+  }
+
+  .row-click:hover td {
+    background-color: #f5f5f5;
+  }
+
+  /* active selected row */
+  tr.active-row td {
+    background-color: #EAFAEF !important; /* light blue */
+    color: #229645 !important;            /* blue text */
+    font-weight: bold;
+  }
+
+</style>
 {% endblock %}
 
 {% block content%}
 <div class="row">
-  <div class="col-lg-8 d-flex align-items-strech">
-    <div class="tabs bg-light mb-3">
-      {% for item in cat %}
-      <input type="radio" class="tab-radio" id="radio-{{ forloop.counter0 }}" name="tabs" {% if forloop.first %}checked{% endif %} />
-      <label class="tab" for="radio-{{ forloop.counter0 }}">
-        {{ item.name }}
-      </label>
-      {% endfor %}
-      <span class="glider"></span>
-    </div>
-  </div>
-  <div class="col-lg-4">
-    <div class="d-flex align-items-center gap-2">
-
+  <!--div class="col-lg-3 d-flex align-items-center gap-2">
       <div id="reportrange"
         style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%; height: 35px;"
         class="rounded-2">
@@ -34,171 +42,218 @@
       <a class="btn btn-info" onclick="setDateInDashbord()">
         <i class="fa-solid fa-magnifying-glass"></i>
       </a>
+    </div-->
+  <div class="col-lg-10 d-flex align-items-center mb-3">
+    <div class="tabs bg-light">
+      {% for item in cat %}
+      <input
+        type="radio"
+        class="tab-radio"
+        id="radio-{{ forloop.counter }}"
+        name="car_by_dep"
+        value="{{item.id}}"
+        {% if selected_car_dep_id == item.id|stringformat:"s" %}
+          checked
+        {% endif %}
+        onchange="getApiDataToDashbord()"
+      />
 
+      <label class="tab" for="radio-{{ forloop.counter }}">
+        {{ item.name }}
+      </label>
+      {% endfor %}
+      <span class="glider"></span>
     </div>
   </div>
-  <!--  Row 1 -->
-  <div class="row my-3">
-    <div class="col-lg-8">
-      <div class="row">
-        <div class="col-lg-12">
-          <div class="card w-100">
-            <div class="card-body">
-              <div class="d-sm-flex d-block align-items-center justify-content-between mb-9">
-                <div class="mb-3 mb-sm-0">
-                  <h5 class="card-title fw-semibold">Sales Profit</h5>
-                </div>
-                <div>
-                  <select class="form-select">
-                    <option value="1">March 2025</option>
-                    <option value="2">April 2025</option>
-                    <option value="3">May 2025</option>
-                    <option value="4">June 2025</option>
-                  </select>
-                </div>
-              </div>
-              <div id="chart-expenses"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-lg-12">
-          <div class="card w-100">
-            <div class="card-body">
-              <div class="d-sm-flex d-block align-items-center justify-content-between mb-9">
-                <div class="mb-3 mb-sm-0">
-                  <h5 class="card-title fw-semibold">Sales Profit</h5>
-                </div>
-                <div>
-                  <select class="form-select">
-                    <option value="1">March 2025</option>
-                    <option value="2">April 2025</option>
-                    <option value="3">May 2025</option>
-                    <option value="4">June 2025</option>
-                  </select>
-                </div>
-              </div>
-              <div id="chart-oil"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-4">
-      <div class="row">
-        <div class="col-lg-12">
-          <div class="card bg-danger-subtle shadow-none">
-            <div class="card-body">
-              <div class="d-flex mb-10 pb-1 justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-6">
-                  <div
-                    class="rounded-circle-shape bg-danger px-3 py-2 rounded-pill d-inline-flex align-items-center justify-content-center">
-                    <iconify-icon icon="solar:users-group-rounded-bold-duotone" class="fs-7 text-white"></iconify-icon>
-                  </div>
-                  <h6 class="mb-0 fs-4 fw-medium text-muted">
-                    ค่าใช้จ่ายซ่อมบำรุงรวม (บาท)
-                  </h6>
-                </div>
-                <!-- div class="dropdown dropstart">
-                <a href="javascript:void(0)" class="text-muted" id="dropdownMenuButton" data-bs-toggle="dropdown"
-                  aria-expanded="false">
-                  <i class="ti ti-dots-vertical fs-6"></i>
-                </a>
-                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                  <li>
-                    <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)"><i
-                        class="fs-4 ti ti-plus"></i>Add</a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)"><i
-                        class="fs-4 ti ti-edit"></i>Edit</a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)"><i
-                        class="fs-4 ti ti-trash"></i>Delete</a>
-                  </li>
-                </ul>
-              </!-->
-              </div>
-              <div class="row align-items-end justify-content-between">
-                <!--div class="col-5">
-                <h2 class="mb-6 fs-8">4,562</h2>
-                <span class="badge rounded-pill border border-muted fw-bold text-muted fs-2 py-1">+23% last
-                  month</span>
-              </!div-->
-                <div class="col-12">
-                  <div id="chart-repair"></div>
-                </div>
-              </div>
-              <div class="row align-items-end justify-content-between float-end">
-                <div class="col-12">
-                  <h2 class="mb-6 fs-8 text-end">รวม 4,562</h2>
-                  <span class="badge rounded-pill border border-muted fw-bold text-muted fs-2 py-1">+23% last
-                    month</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-12">
-          <div class="card bg-secondary-subtle shadow-none">
-            <div class="card-body">
-              <div class="d-flex mb-10 pb-1 justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-6">
-                  <div
-                    class="rounded-circle-shape bg-secondary px-3 py-2 rounded-pill d-inline-flex align-items-center justify-content-center">
-                    <iconify-icon icon="solar:users-group-rounded-bold-duotone" class="fs-7 text-white"></iconify-icon>
-                  </div>
-                  <h6 class="mb-0 fs-4 fw-medium text-muted">
-                    ค่าใช้จ่ายแบ่งตามประเภทรถ (บาท)
-                  </h6>
-                </div>
-                <!-- div class="dropdown dropstart">
-                <a href="javascript:void(0)" class="text-muted" id="dropdownMenuButton" data-bs-toggle="dropdown"
-                  aria-expanded="false">
-                  <i class="ti ti-dots-vertical fs-6"></i>
-                </a>
-                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                  <li>
-                    <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)"><i
-                        class="fs-4 ti ti-plus"></i>Add</a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)"><i
-                        class="fs-4 ti ti-edit"></i>Edit</a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)"><i
-                        class="fs-4 ti ti-trash"></i>Delete</a>
-                  </li>
-                </ul>
-              </!-->
-              </div>
-              <div class="row align-items-end justify-content-between">
-                <!--div class="col-5">
-                <h2 class="mb-6 fs-8">4,562</h2>
-                <span class="badge rounded-pill border border-muted fw-bold text-muted fs-2 py-1">+23% last
-                  month</span>
-              </!div-->
-                <div class="col-12">
-                  <div id="chart-cartype"></div>
-                </div>
-              </div>
-              <div class="row align-items-end justify-content-between float-end">
-                <div class="col-12">
-                  <h2 class="mb-6 fs-8 text-end">รวม 7,890</h2>
-                  <span class="badge rounded-pill border border-muted fw-bold text-muted fs-2 py-1">+23% last
-                    month</span>
-                </div>
-              </div>
-            </div>
+  <div class="col-lg-2 d-flex align-items-end mb-3">
+    <button id="resetCarFilter" class="btn btn-danger btn-xl">
+        Reset <i class="fa-solid fa-arrow-rotate-left"></i>
+    </button>
+    {% if request.user.is_superuser %}
+    <button class="btn btn-success btn-xl" onclick="updateValueAPI()">
+      Update <i class="fa-solid fa-download"></i>
+    </button>
+    {% endif %}
+  </div>
+  <!--div class="col-lg-3 d-flex align-items-center mb-3">
+    <select id="id_car" class="form-select form-select-xl">
+      <option value="all">ทั้งหมด</option>
+      {% for cd in car_by_dep %}
+      <option value="{{cd.id}}">{{cd.name}}:{{cd.code}}</option>
+      {% endfor %}
+    </select>
+  </!--div>
+ <--  Row 1 -->
+  <div class="col-12"> <!-- ✅ wrap row -->
+    <div class="row mt-2">
+      <div class="col-lg-12 d-flex align-items-center mb-3">
+        <div class="card w-100">
+          <div class="card-body">
+            <table id="carTable" class="table table-hover nowrap table-sm w-100">
+              <thead class="table-light">
+                <tr>
+                  <th>No.{{request.session.car_code}}</th>
+                  <th>code</th>
+                  <th>ทะเบียน</th>
+                  <th>บริษัท</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for cd in car_by_dep %}
+                <tr id="id_cbd" data-car-code="{{cd.code}}" data-branch-company-id="{{ cd.branch_company.id }}" class="row-click {% if cd.code == request.session.car_code %}active-row{% endif %}">
+                  <td>{{forloop.counter}}</td>
+                  <td>{{cd.code}}</td>
+                  <td>{{cd.name}}</td>
+                  <td>{{cd.branch_company.name}}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
     </div>
   </div>
-  <div class="row">
+        <div class="col-lg-8">
+            <div class="row">
+                <div class="col-lg-12 d-flex align-items-center">
+                    <div class="card w-100">
+                        <div class="card-body">
+                            <div class="d-sm-flex d-block align-items-center justify-content-between mb-9">
+                                <div class="mb-3 mb-sm-0">
+                                    <h5 class="card-title fw-semibold">ค่าใช้จ่ายซ่อมบำรุงรวม (บาท)</h5>
+                                </div>
+                                <!--div> <select class="form-select"> <option value="1">March 2025</option> <option value="2">April 2025</option> <option value="3">May 2025</option> <option value="4">June 2025</option> </select> </!div-->
+                            </div>
+                            <div id="chart-bymonth"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-12 d-flex align-items-center">
+                    <div class="card w-100">
+                        <div class="card-body">
+                            <div class="d-sm-flex d-block align-items-center justify-content-between mb-9">
+                                <div class="mb-3 mb-sm-0">
+                                    <h5 class="card-title fw-semibold">ปริมาณที่ใช้น้ำมันเชื้อเพลิงรวม (ลิตร)</h5>
+                                </div>
+                            </div>
+                            <div id="chart-oil"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 d-flex align-items-center">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="card bg-danger-subtle shadow-none">
+                        <div class="card-body">
+                            <div class="d-flex mb-10 pb-1 justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-6">
+                                    <div
+                                        class="rounded-circle-shape bg-danger px-3 py-2 rounded-pill d-inline-flex align-items-center justify-content-center">
+                                        <iconify-icon icon="solar:users-group-rounded-bold-duotone"
+                                            class="fs-7 text-white"></iconify-icon> </div>
+                                    <h6 class="mb-0 fs-4 fw-medium text-muted"> ค่าใช้จ่ายซ่อมบำรุงรวม (บาท) </h6>
+                                </div>
+                                <!-- div class="dropdown dropstart"> <a href="javascript:void(0)" class="text-muted" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false"> <i class="ti ti-dots-vertical fs-6"></i> </a> <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton"> <li> <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)"><i class="fs-4 ti ti-plus"></i>Add</a> </li> <li> <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)"><i class="fs-4 ti ti-edit"></i>Edit</a> </li> <li> <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)"><i class="fs-4 ti ti-trash"></i>Delete</a> </li> </ul> </!-->
+                            </div>
+                            <div class="row align-items-end justify-content-between">
+                                <!--div class="col-5"> <h2 class="mb-6 fs-8">4,562</h2> <span class="badge rounded-pill border border-muted fw-bold text-muted fs-2 py-1">+23% last month</span> </!div-->
+                                <div class="col-12">
+                                    <div id="chart-repair"></div>
+                                </div>
+                            </div>
+                            <div class="row align-items-end justify-content-between float-end">
+                                <div class="col-12">
+                                    <h4 class="mb-6 fs-8 text-end">รวม {{repair_total|floatformat:2| intcomma}}</h4>
+                                    <!--span class="badge rounded-pill border border-muted fw-bold text-muted fs-2 py-1">+23% last month</!span-->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-12">
+                    <div class="card bg-secondary-subtle shadow-none">
+                        <div class="card-body">
+                            <div class="d-flex mb-10 pb-1 justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-6">
+                                    <div
+                                        class="rounded-circle-shape bg-secondary px-3 py-2 rounded-pill d-inline-flex align-items-center justify-content-center">
+                                        <iconify-icon icon="solar:users-group-rounded-bold-duotone"
+                                            class="fs-7 text-white"></iconify-icon> </div>
+                                    <h6 class="mb-0 fs-4 fw-medium text-muted"> ค่าใช้จ่ายแบ่งตามประเภทรถ (บาท) </h6>
+                                </div>
+                            </div>
+                            <div class="row align-items-end justify-content-between">
+                                <!--div class="col-5"> <h2 class="mb-6 fs-8">4,562</h2> <span class="badge rounded-pill border border-muted fw-bold text-muted fs-2 py-1">+23% last month</span> </!div-->
+                                <div class="col-12">
+                                    <div id="chart-cartype"></div>
+                                </div>
+                            </div>
+                            <div class="row align-items-end justify-content-between float-end">
+                                <div class="col-12">
+                                    <h4 class="mb-6 fs-8 text-end">รวม {{car_type_total|floatformat:2| intcomma}}</h4>
+                                    <!--span class="badge rounded-pill border border-muted fw-bold text-muted fs-2 py-1">+23% last month</!span-->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <div class="col-12">
+        <div class="row">
+            <div class="col-lg-12 d-flex align-items-center">
+                <div class="card w-100">
+                    <div class="card-body">
+                        <div class="d-sm-flex d-block align-items-center justify-content-between mb-9">
+                            <div class="mb-3 mb-sm-0">
+                                <h5 class="card-title fw-semibold">มิเตอร์ทำงานรวม (ชั่วโมง, กิโลเมตร)</h5>
+                            </div>
+                            <!--div> <select class="form-select"> <option value="1">March 2025</option> <option value="2">April 2025</option> <option value="3">May 2025</option> <option value="4">June 2025</option> </select> </!div-->
+                        </div>
+                        <div id="chart-work"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+  <div class="col-12">
+      <div class="row">
+        <div class="col-lg-12 d-flex align-items-center">
+          <div class="card w-100">
+            <div class="card-body">
+              <div class="d-sm-flex d-block align-items-center justify-content-between mb-9">
+                <div class="mb-3 mb-sm-0">
+                  <h5 class="card-title fw-semibold">ค่าใช้จ่ายซ่อมบำรุงรวมตามทะเบียนรถ</h5>
+                </div>
+              </div>
+              <div id="chart-exp-by-car"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12">
+      <div class="row">
+        <div class="col-lg-12 d-flex align-items-center">
+          <div class="card w-100">
+            <div class="card-body">
+              <div class="d-sm-flex d-block align-items-center justify-content-between mb-9">
+                <div class="mb-3 mb-sm-0">
+                  <h5 class="card-title fw-semibold">ค่าใช้จ่ายรวม ต่อ ชั่วโมงการทำงาน (บาท/ชั่วโมง)</h5>
+                </div>
+              </div>
+              <div id="chart-repair-work"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <!--div class="row">
     <div class="col-lg-8 d-flex align-items-stretch">
       <div class="card w-100 overflow-hidden">
         <div class="card-body pb-0">
@@ -532,8 +587,8 @@
         </div>
       </div>
     </div>
-  </div>
-  <div class="row">
+  </div-->
+  <!--div class="row">
     <div class="col-lg-4">
       <div class="card overflow-hidden hover-img">
         <div class="position-relative">
@@ -629,7 +684,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </div-->
   <div class="py-6 px-6 text-center">
     <p class="mb-0 fs-4">Design and Developed by <a href="https://www.wrappixel.com/" target="_blank"
         class="pe-1 text-primary text-decoration-underline">Wrappixel.com</a></p>
@@ -643,8 +698,107 @@
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
   <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 
+  <!-- select2 Styles -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+
+
+  <!-- DataTables core -->
+  <script src="https://cdn.datatables.net/2.3.8/js/dataTables.js"></script>
+
+  <!-- DataTables Bootstrap 5 integration -->
+  <script src="https://cdn.datatables.net/2.3.8/js/dataTables.bootstrap5.js"></script>
+
+  <!-- DataTables Responsive -->
+  <script src="https://cdn.datatables.net/responsive/3.0.8/js/dataTables.responsive.js"></script>
+
+  <!-- Responsive Bootstrap 5 -->
+  <script src="https://cdn.datatables.net/responsive/3.0.8/js/responsive.bootstrap5.js"></script>
 
   <script>
+
+	 $(document).ready(function () {
+      $('#carTable').DataTable({
+          pageLength: 5,
+          lengthMenu: [5, 10, 25, 50],
+          responsive: true,
+          stateSave: true,
+          stateDuration: -1
+      });
+    });
+
+    //////////////////  start select row car  //////////////////////////
+    const selectCarCode = "{{ car_code }}";
+    const selectBranchCompanyId = "{{ request.GET.branch_company_id|default:'' }}";
+
+    const rows = document.querySelectorAll('#carTable .row-click');
+
+
+    // active row
+    if (selectCarCode !== 'null') {
+
+        rows.forEach(row => {
+
+            const rowCode = row.dataset.carCode.trim();
+            const rowBranchCompanyId =
+                row.dataset.branchCompanyId.trim();
+
+            if (
+                rowCode === selectCarCode &&
+                rowBranchCompanyId === selectBranchCompanyId
+            ) {
+                row.classList.add('active-row');
+            }
+
+        });
+    }
+
+
+    // click event
+    rows.forEach(row => {
+
+        row.addEventListener('click', function () {
+
+            const carCode = this.dataset.carCode;
+            const branchCompanyId =
+                this.dataset.branchCompanyId;
+
+            // remove all active
+            rows.forEach(r => r.classList.remove('active-row'));
+
+            // active current
+            this.classList.add('active-row');
+
+            // redirect with both params
+            window.location.href =
+                `?car_code=${carCode}&branch_company_id=${branchCompanyId}`;
+
+        });
+
+    });
+    //////////////////  end select row car  //////////////////////////
+
+    /////////////////  start  button reset  //////////////////////////
+    document
+    .getElementById('resetCarFilter')
+    .addEventListener('click', function () {
+
+        document
+            .querySelectorAll('#carTable .row-click')
+            .forEach(r => r.classList.remove('active-row'));
+
+        window.location.href = window.location.pathname;
+
+    });
+    /////////////////   end button reset    //////////////////////////
+
+
+    $(document).ready(function () {
+      $('#id_car').select2({ width: "100%", theme: 'bootstrap-5' });
+    });
+
     function generateStablePastelColors(labels) {
       const total = labels.length;
 
@@ -747,18 +901,36 @@
       return false;
     }
 
+    function getApiDataToDashbord() {
+
+        let car_dep_id =
+            document.querySelector('input[name="car_by_dep"]:checked').value;
+
+        window.location.href =
+            "{% url 'getApiDataToDashbord' %}?car_dep_id=" + car_dep_id;
+    }
+
     //chart ค่าใช้จ่ายตามประเภทการซ่อม
-    var labels = {{ labels|safe }};
-    var colors = generateStablePastelColors(labels);
+    var rp_labels = {{ repair_labels| safe }};
+    var colors = generateStablePastelColors(rp_labels);
 
     var optionsRepair = {
-      series: {{ series|safe }},
+      series: {{ repair_series|safe }},
+
       chart: {
         width: 325,
         type: 'donut',
+
+        toolbar: {
+          show: true,
+          tools: {
+            download: true
+          }
+        }
       },
-      labels: labels,
-      // แสดง tooltip
+
+      labels: rp_labels,
+
       tooltip: {
         y: {
           formatter: function (value) {
@@ -769,7 +941,9 @@
           }
         }
       },
+
       colors: colors,
+
       responsive: [{
         breakpoint: 480,
         options: {
@@ -783,17 +957,46 @@
       }]
     };
 
-    var chartRepair = new ApexCharts(document.querySelector("#chart-repair"), optionsRepair);
+    var chartRepair = new ApexCharts(
+      document.querySelector("#chart-repair"),
+      optionsRepair
+    );
+
     chartRepair.render();
+
+
+    var ct_labels = {{ car_type_labels| safe }};
+    var colors = generateStablePastelColors(ct_labels);
 
     //chart ตามประเภทรถ
     var optionsCartype = {
-      series: [44, 55, 13, 43, 22],
+      series: {{ car_type_series|safe }},
+
       chart: {
-        width: 270,
+        width: 325,
         type: 'pie',
+
+        toolbar: {
+          show: true,
+          tools: {
+            download: true
+          }
+        }
       },
-      labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'],
+
+      labels: ct_labels,
+
+      tooltip: {
+        y: {
+          formatter: function (value) {
+            return value.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            }) + ' บาท';
+          }
+        }
+      },
+
       responsive: [{
         breakpoint: 480,
         options: {
@@ -811,27 +1014,45 @@
     chartCartype.render();
 
 
-    var optionsExpenses = {
+    var bm_labels = {{ bymonth_labels| safe }};
+    var colors = generateStablePastelColors(bm_labels);
+
+    var optionsByMonth = {
       series: [{
         name: 'Inflation',
-        data: [2.3, 3.1, 4.0, 10.1, 4.0, 3.6, 3.2, 2.3, 1.4, 0.8, 0.5, 0.2]
+        data: {{ bymonth_series|safe }},
       }],
-      chart: { 
+
+      colors: colors,
+      chart: {
         height: 213,
         type: 'bar',
       },
+
       plotOptions: {
+        /*
         bar: {
           borderRadius: 2,
           dataLabels: {
-            position: 'top', // top, center, bottom
+            position: 'top',
           },
+        } ใส่สีเดียวกันทุก bar*/
+        bar: {
+          dataLabels: {
+            position: 'top',
+          },
+          distributed: true,   // สำคัญมาก
+          borderRadius: 2
         }
       },
+
       dataLabels: {
         enabled: true,
         formatter: function (val) {
-          return val + "K";
+          return val.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          }) + " บาท";
         },
         offsetY: -20,
         style: {
@@ -841,8 +1062,8 @@
       },
 
       xaxis: {
-        categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-        position: 'top',
+        categories: bm_labels,
+        position: 'bottom',
         axisBorder: {
           show: false
         },
@@ -860,28 +1081,34 @@
               opacityTo: 0.5,
             }
           }
-        },
-        tooltip: {
-          enabled: true,
         }
       },
+
+      tooltip: {
+        y: {
+          formatter: function (value) {
+            return value.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            }) + ' บาท';
+          }
+        }
+      },
+
       yaxis: {
         axisBorder: {
           show: false
         },
         axisTicks: {
-          show: false,
+          show: false
         },
         labels: {
-          show: false,
-          formatter: function (val) {
-            return val + "%";
-          }
+          show: false
         }
-
       },
+
       title: {
-        text: 'Monthly Inflation in Argentina, 2002',
+        text: 'Monthly Report',
         floating: true,
         offsetY: 330,
         align: 'center',
@@ -891,49 +1118,347 @@
       }
     };
 
-    var chartExpenses = new ApexCharts(document.querySelector("#chart-expenses"), optionsExpenses);
-    chartExpenses.render();
+    var chartByMonth = new ApexCharts(document.querySelector("#chart-bymonth"), optionsByMonth);
+    chartByMonth.render();
 
     var optionsOil = {
-          series: [{
-          name: 'Website Blog',
-          type: 'column',
-          data: [440, 505, 414, 671, 227, 413, 201, 352, 752, 320, 257, 160]
-        }, {
-          name: 'Social Media',
-          type: 'line',
-          data: [23, 42, 35, 27, 43, 22, 17, 31, 22, 22, 12, 16]
-        }],
-          chart: {
-          height: 213,
-          type: 'line',
+      series: [{
+        name: 'ปริมาณที่ใช้น้ำมัน (ลิตร)',
+        type: 'column',
+        data: {{ oilbymonth_data1 | safe }}
+      }, {
+        name: 'อัตราการใช้พลังงาน L/Km',
+        type: 'line',
+        data: {{ oilbymonth_data2 | safe }}
+      }],
+
+      chart: {
+        height: 213,
+        type: 'line',
+      },
+
+      colors: ['#2899FB', '#FB8A28'], // 👈 เพิ่มตรงนี้
+
+      stroke: {
+        width: [0, 4]
+      },
+
+      dataLabels: {
+        enabled: true, // show all labels
+
+        formatter: function (val, opts) {
+
+          // BAR = series 0
+          if (opts.seriesIndex === 0) {
+            return val.toLocaleString('en-US') + ' ลิตร'; // int + comma
+          }
+
+          // LINE = series 1
+          return val.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          });
         },
-        stroke: {
-          width: [0, 4]
-        },
+
+        offsetY: -8, // move bar label above bar
+        style: {
+          fontSize: '11px'
+        }
+      },
+
+      labels: {{ oilbymonth_labels | safe }},
+
+      yaxis: [{
         title: {
-          text: 'Traffic Sources'
+          text: 'ปริมาณที่ใช้น้ำมัน (ลิตร)',
+        },
+        labels: {
+          formatter: function (val) {
+            return val.toLocaleString('en-US');
+          }
+        }
+
+      }, {
+        opposite: true,
+        title: {
+          text: 'อัตราการใช้พลังงาน (L/Km)'
+        },
+        labels: {
+          formatter: function (val) {
+            return val.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            });
+          }
+        }
+      }]
+    };
+
+  var chartOil = new ApexCharts(document.querySelector("#chart-oil"), optionsOil);
+  chartOil.render();
+
+
+ var optionsWork = {
+      series: [{
+        name: 'ชั่วโมงทำงาน',
+        type: 'column',
+        data: {{ workbymonth_data1 | safe }}
+      }, {
+        name: '% อัตราการทำงานเฉลี่ย',
+        type: 'line',
+        data: {{ workbymonth_data2 | safe }}
+      }],
+
+      chart: {
+        height: 213,
+        type: 'line',
+      },
+
+      colors: ['#E7553C', '#3CCDE7'], // 👈 เพิ่มตรงนี้
+      
+      stroke: {
+        width: [0, 4]
+      },
+
+      dataLabels: {
+        enabled: true, // show all labels
+
+        formatter: function (val, opts) {
+
+          // BAR = series 0
+          if (opts.seriesIndex === 0) {
+            return val.toLocaleString('en-US') + ' ชม.'; // int + comma
+          }
+
+          // LINE = series 1
+          return val.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          }) + ' %';
+        },
+
+        offsetY: -8, // move bar label above bar
+        style: {
+          fontSize: '11px'
+        }
+      },
+
+      labels: {{ workbymonth_labels | safe }},
+      yaxis: [{
+        title: {
+          text: 'ชั่วโมงทำงาน',
+        },
+        labels: {
+          formatter: function (val) {
+            return val.toLocaleString('en-US');
+          }
+        }
+
+      }, {
+        opposite: true,
+        title: {
+          text: '% อัตราการทำงานเฉลี่ย'
+        },
+        labels: {
+          formatter: function (val) {
+            return val.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            });
+          }
+        }
+      }]
+    };
+
+  var chartWork = new ApexCharts(document.querySelector("#chart-work"), optionsWork);
+  chartWork.render();
+
+  var ebc_labels = {{ expbycar_labels| safe }};
+  var colors = generateStablePastelColors(ebc_labels);
+
+  var optionsExpByCar = 	{
+          series: [{
+          name: 'Inflation',
+          data: {{ expbycar_series|safe }},
+        }],
+        chart: {
+          height: 350,
+          type: 'bar',
+        },
+        colors: colors, // << เพิ่มตรงนี้
+        plotOptions: {
+          bar: {
+            borderRadius: 5,
+            distributed: true, // << เพิ่มตรงนี้
+            dataLabels: {
+              position: 'top', // top, center, bottom
+            },
+          }
         },
         dataLabels: {
           enabled: true,
-          enabledOnSeries: [1]
-        },
-        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-        yaxis: [{
-          title: {
-            text: 'Website Blog',
+          formatter: function (val) {
+            return (val/1000).toFixed(1) + "K";
           },
-        
-        }, {
-          opposite: true,
-          title: {
-            text: 'Social Media'
+          offsetY: -20,
+          style: {
+            fontSize: '12px',
+            colors: ["#304758"]
           }
-        }]
+        },
+        
+        xaxis: {
+          categories: ebc_labels,
+          position: 'top',
+          axisBorder: {
+            show: false
+          },
+          axisTicks: {
+            show: false
+          },
+          crosshairs: {
+            fill: {
+              type: 'gradient',
+              gradient: {
+                colorFrom: '#D8E3F0',
+                colorTo: '#BED1E6',
+                stops: [0, 100],
+                opacityFrom: 0.4,
+                opacityTo: 0.5,
+              }
+            }
+          },
+          tooltip: {
+            enabled: true,
+          }
+        },
+        yaxis: {
+          axisBorder: {
+            show: false
+          },
+          axisTicks: {
+            show: false,
+          },
+          labels: {
+            show: false,
+            formatter: function (val) {
+              return (val/1000).toFixed(1) + "K";
+            }
+          }
+        
+        },
+        title: {
+          floating: true,
+          offsetY: 330,
+          align: 'center',
+          style: {
+            color: '#444'
+          }
+        }
         };
 
-        var chartOil = new ApexCharts(document.querySelector("#chart-oil"), optionsOil);
-        chartOil.render();
+    var chartExpByCar = new ApexCharts(document.querySelector("#chart-exp-by-car"), optionsExpByCar);
+    chartExpByCar.render();
+
+    var optionsRepairWork = {
+      series: [{
+        name: 'ค่าใช้จ่ายซ่อมบำรุง',
+        type: 'column',
+        data: {{ repair_work_data1 | safe }}
+      }, {
+        name: 'ชั่วโมงการทำงาน',
+        type: 'line',
+        data: {{ repair_work_data2 | safe }}
+      }],
+
+      chart: {
+        height: 213,
+        type: 'line',
+      },
+
+      // set colors
+      colors: ['#C954CF', '#5ACF54'], // purple, yellow
+
+      stroke: {
+        width: [0, 4]
+      },
+
+      dataLabels: {
+        enabled: true,
+
+        formatter: function (val, opts) {
+
+          // BAR = series 0
+          if (opts.seriesIndex === 0) {
+            return val.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            }) + ' บาท';
+          }
+
+          // LINE = series 1
+          return val.toLocaleString('en-US') + ' ชม.';
+        },
+
+        offsetY: -8,
+        style: {
+          fontSize: '11px'
+        }
+      },
+
+      labels: {{ repair_work_labels | safe }},
+
+      yaxis: [{
+        title: {
+          text: 'ค่าใช้จ่ายซ่อมบำรุง',
+        },
+        labels: {
+          formatter: function (val) {
+            return val.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            }) + ' บาท';
+          }
+        }
+
+      }, {
+        opposite: true,
+        title: {
+          text: 'ชั่วโมงการทำงาน'
+        },
+        labels: {
+          formatter: function (val) {
+            return val.toLocaleString('en-US') + ' ชม.';
+          }
+        }
+      }]
+    };
+
+  var chartRepairWork = new ApexCharts(document.querySelector("#chart-repair-work"), optionsRepairWork);
+  chartRepairWork.render();
+  
+  function updateValueAPI() {
+    $.ajax({
+      url: '{% url "updateValueAPI" %}',
+      type: 'GET',
+      data: {
+          
+      },
+      dataType: 'json',
+      success: function (data) {
+        if (data) {
+          location.reload();
+          e.preventDefault();
+        } else {
+
+        }
+      },
+      error: function (xhr, status, error) {
+        alert('error = ' + error);
+      }
+    });
+    return false;
+  }
 
   </script>
 

@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'widget_tweaks',
     'crispy_forms',
     'crispy_bootstrap5',
+    'django.contrib.humanize',
+    'import_export',
 ]
 
 MIDDLEWARE = [
@@ -70,6 +72,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'dbapp.context_processors.companyVisibleTab',
+                'dbapp.context_processors.userVisibleTab',
             ],
         },
     },

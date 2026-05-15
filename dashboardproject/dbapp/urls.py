@@ -16,4 +16,7 @@ urlpatterns = [
     path('reset_password_complete/', auth_views.PasswordResetCompleteView.as_view(template_name = "account/passwordResetComplete.html"), name="password_reset_complete"),
 
     path('setDateInDashbord', views.setDateInDashbord, name="setDateInDashbord"),
+    path('getApiDataToDashbord/', views.getApiDataToDashbord, name="getApiDataToDashbord"),
+    path('setSessionCompany/', views.setSessionCompany, name="setSessionCompany"),
+    path('updateValueAPI/', views.updateValueAPI, name="updateValueAPI"),
 ]
