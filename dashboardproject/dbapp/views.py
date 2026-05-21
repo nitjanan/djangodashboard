@@ -16,6 +16,8 @@ import requests
 from django.db.models import Q, Sum, IntegerField, Min, Max, F, FloatField, Value, Case, When
 from django.db.models.functions import Coalesce, Concat
 from django.db.models.expressions import ExpressionWrapper
+from dateutil.relativedelta import relativedelta
+from django.db import transaction
 
 #หาวันแรกของเดือนนี้
 def startDateInMonth(day):
@@ -40,7 +42,6 @@ def getDataFromApiTest( url):
     except Exception as e:
         return []
     
-
 #API_BASE = "http://127.0.0.1:8000"
 b_api = BaseAPI.objects.get(id = 1)
 API_BASE = b_api.url
@@ -155,10 +156,8 @@ def findCompanyIn(request):
         
     return company_in
 
-def updateOrCreateSummaryCarDep():
-    today = date.today()
-
-    url = f"{API_BASE}/all/car/department/api/between/2026-01-01/{today}/"
+def updateOrCreateSummaryCarDep(start_date, end_date):
+    url = f"{API_BASE}/all/car/department/api/between/{start_date}/{end_date}/"
     car_by_dep = get_api_data(url)
 
     for item in car_by_dep:
@@ -172,74 +171,122 @@ def updateOrCreateSummaryCarDep():
             }
         )
 
-def updateOrCreateRepair():
+@transaction.atomic
+def createRepair():
     today = date.today()
+    url = (
+        f"{API_BASE}"
+        f"/all/exp/repair/api/between/"
+        f"2026-01-01/{today}/"
+    )
 
-    url = f"{API_BASE}/all/exp/repair/api/between/2026-01-01/{today}/"
     data_by_url = get_api_data(url)
-
+    objs = []
     for item in data_by_url:
-        sr =  SummaryRepair.objects.create(
-            branch_company_id = item['branch_company'],
-            month  =  item['month'],
-            year = item['year'],
-            month_th = item['month_th'],
-            repair_name = item['rt_name'],
-            amount = item['amount'],
-            car_id = item['car_id'],
-            car_code = item['car_code'],
-            repair_id = item['note2'],
-            car_dep_id = item['car_dep'],
+
+        objs.append(
+            SummaryRepair(
+                branch_company_id=item['branch_company'],
+                summary_date=date(
+                    int(item['year']),
+                    int(item['month']),
+                    1
+                ),
+                month=int(item['month']),
+                year=int(item['year']),
+                month_th=item['month_th'],
+                repair_name=item['rt_name'],
+                amount=item['amount'],
+                car_id=item['car_id'],
+                car_code=item['car_code'],
+                repair_id=item['note2'],
+                car_dep_id=item['car_dep'],
+            )
         )
-        sr.save()
 
+    # insert ทีเดียว
+    SummaryRepair.objects.bulk_create(
+        objs,
+        batch_size=1000
+    )
 
-def updateOrCreateOil():
+    return True
+
+@transaction.atomic
+def createOil():
     today = date.today()
 
     url = f"{API_BASE}/all/exp/oil/by/month/api/between/2026-01-01/{today}/"
     data_by_url = get_api_data(url)
 
+    objs = []
     for item in data_by_url:
-        so =  SummaryOil.objects.create(
-            branch_company_id = item['branch_company'],
-            month  =  item['month'],
-            year = item['year'],
-            month_th = item['month_th'],
+        objs.append(
+            SummaryOil(
+                branch_company_id = item['branch_company'],
+                # วันที่ 1 ของเดือน
+                summary_date=date(
+                    int(item['year']),
+                    int(item['month']),
+                    1
+                ),
+                month  =  item['month'],
+                year = item['year'],
+                month_th = item['month_th'],
 
-            car_dep_id = item['car_dep'],
-            car_id = item['car_id'],
+                car_dep_id = item['car_dep'],
+                car_id = item['car_id'],
 
-            sum_liter = item['sum_liter'],
-            sum_km = item['sum_km'],
-            liter_per_km = item['liter_per_km'],
-
+                sum_liter = item['sum_liter'],
+                sum_km = item['sum_km'],
+                liter_per_km = item['liter_per_km'],
+            )
         )
-        so.save()
+        # insert ทีเดียว
+    SummaryOil.objects.bulk_create(
+        objs,
+        batch_size=1000
+    )
+
+    return True
 
 
-def updateOrCreateWork():
+def createWork():
     today = date.today()
 
     url = f"{API_BASE}/all/exp/by/month/api/between/2026-01-01/{today}/"
     data_by_url = get_api_data(url)
 
+    objs = []
     for item in data_by_url:
-        sw =  SummaryWork.objects.create(
-            branch_company_id = item['branch_company'],
-            month  =  item['month'],
-            year = item['year'],
-            month_th = item['month_th'],
+        objs.append(
+            SummaryWork(
+                branch_company_id = item['branch_company'],
+                # วันที่ 1 ของเดือน
+                summary_date=date(
+                    int(item['year']),
+                    int(item['month']),
+                    1
+                ),
+                month  =  item['month'],
+                year = item['year'],
+                month_th = item['month_th'],
 
-            car_dep_id = item['car_dep'],
-            car_id = item['car_id'],
+                car_dep_id = item['car_dep'],
+                car_id = item['car_id'],
 
-            sum_diff_mile = item['sum_diff_mile'],
-            count_diff_time = item['count_diff_time'],
-            percent = item['percent'],
-
+                sum_diff_mile = item['sum_diff_mile'],
+                count_diff_time = item['count_diff_time'],
+                percent = item['percent'],
+            )
         )
-        sw.save()
+            
+    # insert ทีเดียว
+    SummaryWork.objects.bulk_create(
+        objs,
+        batch_size=1000
+    )
+    return True
 
 def calByCarDep(car_dep):
     # 🔧 ปรับตามจริงของคุณ
@@ -554,14 +601,199 @@ def setDateInDashbord(request):
     }
     return JsonResponse(data)
 
-
 def updateValueAPI(request):
-    updateOrCreateSummaryCarDep()
-    updateOrCreateRepair()
-    updateOrCreateOil()
-    updateOrCreateWork()
+    today = date.today()
+    start_in_year =  "2026-01-01"
+
+    updateOrCreateSummaryCarDep(start_in_year, today)
+    createRepair()
+    createOil()
+    createWork()
     return redirect('home')
 
+def update_summary_from_api(request):
+    today = date.today()
+    try:
+        # ย้อนหลัง 3 เดือน
+        start_date = (today - relativedelta(months=3)).replace(day=1)
+        end_date = today
+        updateDataSummary(start_date, end_date)
+        return HttpResponse("update summary from api success")
+    
+    except Exception as e:
+        print(e)
+        return HttpResponse(f"error : {e}", status=500)
+
+def updateDataSummary(start_date, end_date):
+    updateOrCreateSummaryCarDep(start_date, end_date)
+    updateOrCreateRepair(start_date, end_date)
+    updateOrCreateOil(start_date, end_date)
+    updateOrCreateWork(start_date, end_date)
+    return True
+
+def deleteOldDataSummary(start_date, end_date, modelName):
+    modelName.objects.filter(
+        summary_date__range=(
+            start_date,
+            end_date
+        )
+    ).delete()
+
+@transaction.atomic
+def updateOrCreateRepair(start_date, end_date):
+    url = (
+        f"{API_BASE}"
+        f"/all/exp/repair/api/between/"
+        f"{start_date}/{end_date}/"
+    )
+
+    try:
+        # call api ก่อน
+        data_by_url = get_api_data(url)
+    except Exception as e:
+        print(f"API ERROR : {e}")
+        # JWT error / 500 error
+        return False
+
+    # ถ้า api ไม่มีข้อมูล
+    if not data_by_url:
+        print("API EMPTY")
+        return False
+
+    # delete หลัง api success เท่านั้น
+    deleteOldDataSummary(start_date, end_date, SummaryRepair)
+
+    objs = []
+    for item in data_by_url:
+        objs.append(
+            SummaryRepair(
+                branch_company_id=item['branch_company'],
+                month=int(item['month']),
+                year=int(item['year']),
+                summary_date=date(
+                    int(item['year']),
+                    int(item['month']),
+                    1
+                ),
+                month_th=item['month_th'],
+                repair_name=item['rt_name'],
+                amount=item['amount'],
+                car_id=item['car_id'],
+                car_code=item['car_code'],
+                repair_id=item['note2'],
+                car_dep_id=item['car_dep'],
+            )
+        )
+
+    SummaryRepair.objects.bulk_create(
+        objs,
+        batch_size=1000
+    )
+
+    return True
+
+@transaction.atomic
+def updateOrCreateOil(start_date, end_date):
+    url = (
+        f"{API_BASE}"
+        f"/all/exp/oil/by/month/api/between/"
+        f"{start_date}/{end_date}/"
+    )
+
+    try:
+        # call api ก่อน
+        data_by_url = get_api_data(url)
+    except Exception as e:
+        print(f"API ERROR : {e}")
+        # JWT error / 500 error
+        return False
+
+    # ถ้า api ไม่มีข้อมูล
+    if not data_by_url:
+        print("API EMPTY")
+        return False
+
+    # delete หลัง api success เท่านั้น
+    deleteOldDataSummary(start_date, end_date, SummaryOil)
+
+    objs = []
+    for item in data_by_url:
+        objs.append(
+            SummaryOil(
+                branch_company_id=item['branch_company'],
+                month=item['month'],
+                year=item['year'],
+                # วันที่ 1 ของเดือน
+                summary_date=date(
+                    int(item['year']),
+                    int(item['month']),
+                    1
+                ),
+                month_th=item['month_th'],
+                car_dep_id = item['car_dep'],
+                car_id = item['car_id'],
+                sum_liter = item['sum_liter'],
+                sum_km = item['sum_km'],
+                liter_per_km = item['liter_per_km'],
+            )
+        )
+
+    SummaryOil.objects.bulk_create(
+        objs,
+        batch_size=1000
+    )
+    return True
+
+@transaction.atomic
+def updateOrCreateWork(start_date, end_date):
+    url = (
+        f"{API_BASE}"
+        f"/all/exp/by/month/api/between/"
+        f"{start_date}/{end_date}/"
+    )
+    try:
+        # call api ก่อน
+        data_by_url = get_api_data(url)
+    except Exception as e:
+        print(f"API ERROR : {e}")
+        # JWT error / 500 error
+        return False
+
+    # ถ้า api ไม่มีข้อมูล
+    if not data_by_url:
+        print("API EMPTY")
+        return False
+
+    # delete หลัง api success เท่านั้น
+    deleteOldDataSummary(start_date, end_date, SummaryWork)
+
+    objs = []
+    for item in data_by_url:
+        objs.append(
+            SummaryWork(
+                branch_company_id=item['branch_company'],
+                month=item['month'],
+                year=item['year'],
+                # วันที่ 1 ของเดือน
+                summary_date=date(
+                    int(item['year']),
+                    int(item['month']),
+                    1
+                ),
+                month_th = item['month_th'],
+                car_dep_id = item['car_dep'],
+                car_id = item['car_id'],
+                sum_diff_mile = item['sum_diff_mile'],
+                count_diff_time = item['count_diff_time'],
+                percent = item['percent'],
+            )
+        )
+
+    SummaryWork.objects.bulk_create(
+        objs,
+        batch_size=1000
+    )
+    return True
 
 def setSessionCompany(request):
     name = request.GET.get('title', None)
@@ -581,3 +813,156 @@ def getApiDataToDashbord(request):
     car_dep_id = request.GET.get('car_dep_id', '1')
     request.session['car_dep_id'] = car_dep_id
     return redirect('home')
+
+def update_base_from_api(request):
+    try:
+        updateOrCreateExpBaseCarType()
+        updateOrCreateExpBaseRepairType()
+        updateOrCreateExpBaseCarDepartment()
+        updateOrCreateExpBaseCar()
+        return HttpResponse("update base from api success")
+    
+    except Exception as e:
+        print(e)
+        return HttpResponse(f"error : {e}", status=500)
+    
+from django.db import transaction
+
+
+def updateOrCreateExpBaseCarType():
+
+    url = f"{API_BASE}/exp/basecartype/api/"
+
+    try:
+        data_by_url = get_api_data(url)
+
+    except Exception as e:
+        print(f"API ERROR : {e}")
+        return False
+
+    if not data_by_url:
+        return False
+
+    for item in data_by_url:
+
+        try:
+
+            with transaction.atomic():
+
+                BaseCarType.objects.update_or_create(
+                    id=item['id'],
+                    defaults={
+                        'name': item['name']
+                    }
+                )
+
+        except Exception as e:
+
+            print(f"ERROR : {e}")
+
+    return True
+
+
+def updateOrCreateExpBaseRepairType():
+
+    url = f"{API_BASE}/exp/baserepairtype/api/"
+
+    try:
+        data_by_url = get_api_data(url)
+
+    except Exception as e:
+        print(f"API ERROR : {e}")
+        return False
+
+    if not data_by_url:
+        return False
+
+    for item in data_by_url:
+
+        try:
+
+            with transaction.atomic():
+
+                BaseRepairType.objects.update_or_create(
+                    id=item['id'],
+                    defaults={
+                        'name': item['name']
+                    }
+                )
+
+        except Exception as e:
+
+            print(f"ERROR : {e}")
+
+    return True
+
+
+def updateOrCreateExpBaseCarDepartment():
+
+    url = f"{API_BASE}/exp/basecardepartment/api/"
+
+    try:
+        data_by_url = get_api_data(url)
+
+    except Exception as e:
+        print(f"API ERROR : {e}")
+        return False
+
+    if not data_by_url:
+        return False
+
+    for item in data_by_url:
+
+        try:
+
+            with transaction.atomic():
+
+                BaseCarDepartment.objects.update_or_create(
+                    id=item['id'],
+                    defaults={
+                        'name': item['name']
+                    }
+                )
+
+        except Exception as e:
+
+            print(f"ERROR : {e}")
+
+    return True
+
+
+def updateOrCreateExpBaseCar():
+
+    url = f"{API_BASE}/exp/basecar/api/"
+
+    try:
+        data_by_url = get_api_data(url)
+
+    except Exception as e:
+        print(f"API ERROR : {e}")
+        return False
+
+    if not data_by_url:
+        return False
+
+    for item in data_by_url:
+
+        try:
+
+            with transaction.atomic():
+
+                BaseCar.objects.update_or_create(
+                    id=item['id'],
+                    defaults={
+                        'code': item['code'],
+                        'name': item['name'],
+                        'car_dep_id': item['car_dep'],
+                        'car_type_id': item['car_id'],
+                    }
+                )
+
+        except Exception as e:
+
+            print(f"ERROR : {e}")
+
+    return True

@@ -211,6 +211,13 @@ class SummaryCarDep(models.Model):
     
 
 class SummaryRepair(models.Model):
+    # ใช้แทน year + month สำหรับ query/filter
+    summary_date = models.DateField(
+        db_index=True,
+        null=True,
+        blank=True
+    )
+
     year = models.IntegerField()
     month = models.IntegerField()
     month_th = models.CharField(
@@ -253,7 +260,12 @@ class SummaryRepair(models.Model):
 
         db_table = 'sum_repair'
         indexes = [
-
+            models.Index(
+                fields=[
+                    'summary_date'
+                ],
+                name='repair_summary_date_idx'
+            ),
             # query branch + dep
             models.Index(
                 fields=[
@@ -269,6 +281,13 @@ class SummaryRepair(models.Model):
     
 
 class SummaryOil(models.Model):
+    # ใช้แทน year + month สำหรับ query/filter
+    summary_date = models.DateField(
+        db_index=True,
+        null=True,
+        blank=True
+    )
+
     year = models.IntegerField()
     month = models.IntegerField()
     month_th = models.CharField(
@@ -302,6 +321,12 @@ class SummaryOil(models.Model):
 
         db_table = 'sum_oil'
         indexes = [
+            models.Index(
+                fields=[
+                    'summary_date'
+                ],
+                name='oil_summary_date_idx'
+            ),
 
             # query branch + dep
             models.Index(
@@ -315,10 +340,16 @@ class SummaryOil(models.Model):
 
     def __str__(self):
         return f'{self.year}-{self.year}:{self.car__name}'
-    
 
 
 class SummaryWork(models.Model):
+    # ใช้แทน year + month สำหรับ query/filter
+    summary_date = models.DateField(
+        db_index=True,
+        null=True,
+        blank=True
+    )
+
     year = models.IntegerField()
     month = models.IntegerField()
     month_th = models.CharField(
@@ -352,7 +383,12 @@ class SummaryWork(models.Model):
 
         db_table = 'sum_work'
         indexes = [
-
+            models.Index(
+                fields=[
+                    'summary_date'
+                ],
+                name='work_summary_date_idx'
+            ),
             # query branch + dep
             models.Index(
                 fields=[

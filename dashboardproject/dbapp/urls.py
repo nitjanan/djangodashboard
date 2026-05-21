@@ -19,4 +19,7 @@ urlpatterns = [
     path('getApiDataToDashbord/', views.getApiDataToDashbord, name="getApiDataToDashbord"),
     path('setSessionCompany/', views.setSessionCompany, name="setSessionCompany"),
     path('updateValueAPI/', views.updateValueAPI, name="updateValueAPI"),
+
+    path('update_summary_from_api/', views.update_summary_from_api, name="update_summary_from_api"),
+    path('update_base_from_api/', views.update_base_from_api, name="update_base_from_api"),
 ]
