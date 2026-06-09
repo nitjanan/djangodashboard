@@ -42,19 +42,25 @@ def getDataFromApiTest( url):
     except Exception as e:
         return []
     
-#API_BASE = "http://127.0.0.1:8000"
-b_api = BaseAPI.objects.get(id = 1)
-API_BASE = b_api.url
 
+def get_base_api(mode):
+    b_api = BaseAPI.objects.get(apiname = "webstock")  # query เมื่อเรียกใช้งานจริง
+    if mode == 1:
+        return b_api.url
+    if mode == 2:
+        return b_api.username
+    if mode == 3:
+        return b_api.password
+    
 # -------------------------
 # get access token
 # -------------------------
 def get_jwt_token():
-    url = f"{API_BASE}/jwt/create/"
+    url = f"{get_base_api(1)}/jwt/create/"
 
     payload = {
-        "username": b_api.username,
-        "password": b_api.password
+        "username": get_base_api(2),
+        "password": get_base_api(3)
     }
 
     res = requests.post(url, json=payload, timeout=10)
@@ -68,7 +74,7 @@ def get_jwt_token():
 # verify token
 # -------------------------
 def verify_token(token):
-    url = f"{API_BASE}/jwt/verify/"
+    url = f"{get_base_api(1)}/jwt/verify/"
 
     payload = {
         "token": token
@@ -83,7 +89,7 @@ def verify_token(token):
 # refresh token
 # -------------------------
 def refresh_token(refresh):
-    url = f"{API_BASE}/jwt/refresh/"
+    url = f"{get_base_api(1)}/jwt/refresh/"
 
     payload = {
         "refresh": refresh
@@ -157,7 +163,7 @@ def findCompanyIn(request):
     return company_in
 
 def updateOrCreateSummaryCarDep(start_date, end_date):
-    url = f"{API_BASE}/all/car/department/api/between/{start_date}/{end_date}/"
+    url = f"{get_base_api(1)}/all/car/department/api/between/{start_date}/{end_date}/"
     car_by_dep = get_api_data(url)
 
     for item in car_by_dep:
@@ -175,7 +181,7 @@ def updateOrCreateSummaryCarDep(start_date, end_date):
 def createRepair():
     today = date.today()
     url = (
-        f"{API_BASE}"
+        f"{get_base_api(1)}"
         f"/all/exp/repair/api/between/"
         f"2026-01-01/{today}/"
     )
@@ -216,7 +222,7 @@ def createRepair():
 def createOil():
     today = date.today()
 
-    url = f"{API_BASE}/all/exp/oil/by/month/api/between/2026-01-01/{today}/"
+    url = f"{get_base_api(1)}/all/exp/oil/by/month/api/between/2026-01-01/{today}/"
     data_by_url = get_api_data(url)
 
     objs = []
@@ -254,7 +260,7 @@ def createOil():
 def createWork():
     today = date.today()
 
-    url = f"{API_BASE}/all/exp/by/month/api/between/2026-01-01/{today}/"
+    url = f"{get_base_api(1)}/all/exp/by/month/api/between/2026-01-01/{today}/"
     data_by_url = get_api_data(url)
 
     objs = []
@@ -297,6 +303,134 @@ def calByCarDep(car_dep):
     return 8
 
 
+def build_car_table_rows(car_dep_id, year, company_in, selected_car_type_id):
+    table_filter = {
+        'car_dep_id': car_dep_id,
+        'year': year,
+        'branch_company_id__in': company_in,
+        'car_id__isnull': False,
+    }
+
+    if selected_car_type_id != 'all':
+        table_filter['car__car_type_id'] = selected_car_type_id
+
+    rows = {}
+
+    def ensure_row(item):
+        key = (item['car_id'], item['branch_company_id'])
+
+        if key not in rows:
+            car_name = item.get('car__name') 
+
+            rows[key] = {
+                'car_id': item['car_id'],
+                'branch_company_id': item['branch_company_id'],
+                'branch_company_name': item.get('branch_company__name') or '',
+                'code': item.get('car__code') or '',
+                'name': car_name,
+                'brand': car_name,
+                'model': '-',
+                'start_year': '-',
+                'percent_ma': 0,
+                'avg_work_per_day': 0,
+                'work_total': 0,
+                'oil_total': 0,
+                'fuel_rate': 0,
+                'repair_total': 0,
+                'repair_cost_per_hr': 0,
+            }
+
+        return rows[key]
+
+    repair_rows = (
+        SummaryRepair.objects
+        .filter(**table_filter)
+        .values(
+            'car_id',
+            'car__code',
+            'car__name',
+            'branch_company_id',
+            'branch_company__name',
+        )
+        .annotate(repair_total=Sum('amount'))
+    )
+
+    for item in repair_rows:
+        row = ensure_row(item)
+        row['repair_total'] = float(item['repair_total'] or 0)
+
+    oil_rows = (
+        SummaryOil.objects
+        .filter(**table_filter)
+        .values(
+            'car_id',
+            'car__code',
+            'car__name',
+            'branch_company_id',
+            'branch_company__name',
+        )
+        .annotate(oil_total=Sum('sum_liter'))
+    )
+
+    for item in oil_rows:
+        row = ensure_row(item)
+        row['oil_total'] = float(item['oil_total'] or 0)
+
+    work_rows = (
+        SummaryWork.objects
+        .filter(**table_filter)
+        .values(
+            'car_id',
+            'car__code',
+            'car__name',
+            'branch_company_id',
+            'branch_company__name',
+            'car_dep',
+        )
+        .annotate(
+            work_total=Sum('sum_diff_mile'),
+            work_days=Sum('count_diff_time'),
+        )
+    )
+
+    for item in work_rows:
+        row = ensure_row(item)
+        work_total = float(item['work_total'] or 0)
+        work_days = float(item['work_days'] or 0)
+        car_dep_value = calByCarDep(item.get('car_dep'))
+
+        if work_days > 0:
+            row['avg_work_per_day'] = work_total / work_days
+
+        if work_total > 0:
+            row['fuel_rate'] = row['oil_total'] / work_total
+            row['repair_cost_per_hr'] = row['repair_total'] / work_total
+
+        if work_days > 0 and car_dep_value > 0:
+            row['percent_ma'] = (work_total / (work_days * car_dep_value)) * 100
+
+        row['work_total'] = work_total
+
+    table_rows = sorted(rows.values(), key=lambda row: (row['code'], row['branch_company_name']))
+    work_total_sum = sum(row['work_total'] for row in table_rows)
+    oil_total_sum = sum(row['oil_total'] for row in table_rows)
+    repair_total_sum = sum(row['repair_total'] for row in table_rows)
+    percent_values = [row['percent_ma'] for row in table_rows if row['percent_ma'] > 0]
+    avg_work_values = [row['avg_work_per_day'] for row in table_rows if row['avg_work_per_day'] > 0]
+
+    table_totals = {
+        'percent_ma': sum(percent_values) / len(percent_values) if percent_values else 0,
+        'avg_work_per_day': sum(avg_work_values) / len(avg_work_values) if avg_work_values else 0,
+        'work_total': work_total_sum,
+        'oil_total': oil_total_sum,
+        'fuel_rate': oil_total_sum / work_total_sum if work_total_sum > 0 else 0,
+        'repair_total': repair_total_sum,
+        'repair_cost_per_hr': repair_total_sum / work_total_sum if work_total_sum > 0 else 0,
+    }
+
+    return table_rows, table_totals
+
+
 # เดือนทั้งหมด
 all_months = [
     'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน',
@@ -314,7 +448,10 @@ def home(request):
     except:
         return redirect('logout')
 
-    car_dep_id = request.session.get('car_dep_id', '1')    
+    car_dep_id = request.session.get('car_dep_id', '1')
+    selected_car_type_id = request.GET.get('car_type_id', 'all')
+    if selected_car_type_id != 'all' and not selected_car_type_id.isdigit():
+        selected_car_type_id = 'all'
     # get from URL only
     car_code = request.GET.get('car_code', 'null')
     branch_company_id = request.GET.get('branch_company_id')
@@ -342,11 +479,42 @@ def home(request):
     cat  = BaseCarDepartment.objects.filter(~Q(id = 4))
     car_by_dep = SummaryCarDep.objects.filter(branch_company_id__in = company_in, car_dep_id = car_dep_id)
 
+    car_type_ids = set()
+    car_type_base_filter = {
+        'car_dep_id': car_dep_id,
+        'year': '2026',
+        'branch_company_id__in': company_in,
+        'car__car_type_id__isnull': False,
+    }
+
+    for model in (SummaryRepair, SummaryOil, SummaryWork):
+        car_type_ids.update(
+            model.objects
+            .filter(**car_type_base_filter)
+            .values_list('car__car_type_id', flat=True)
+            .distinct()
+        )
+
+    car_types = BaseCarType.objects.filter(id__in=car_type_ids)
+    available_car_type_ids = {str(car_type.id) for car_type in car_types}
+
+    if selected_car_type_id != 'all' and selected_car_type_id not in available_car_type_ids:
+        selected_car_type_id = 'all'
+
+    car_table_rows, car_table_totals = build_car_table_rows(
+        car_dep_id,
+        '2026',
+        company_in,
+        selected_car_type_id
+    )
 
     base_filter = {
         'car_dep_id': car_dep_id,
         'year': '2026'
     }
+
+    if selected_car_type_id != 'all':
+        base_filter['car__car_type_id'] = selected_car_type_id
 
     # selected car
     if car_code != 'null' and branch_company_id:
@@ -520,7 +688,9 @@ def home(request):
     return render(
         request,"index.html", 
         {   'selected_car_dep_id': car_dep_id,
-            'cat': cat, 'car_by_dep': car_by_dep, 'car_code': car_code,
+            'selected_car_type_id': selected_car_type_id,
+            'cat': cat, 'car_types': car_types, 'car_by_dep': car_by_dep, 'car_code': car_code,
+            'car_table_rows': car_table_rows, 'car_table_totals': car_table_totals,
             'repair_series': repair_series, 'repair_labels': repair_labels, 'repair_total': repair_total,
             'car_type_series': car_type_series, 'car_type_labels': car_type_labels, 'car_type_total': car_type_total,
             'bymonth_series': bymonth_series, 'bymonth_labels': bymonth_labels,
@@ -642,7 +812,7 @@ def deleteOldDataSummary(start_date, end_date, modelName):
 @transaction.atomic
 def updateOrCreateRepair(start_date, end_date):
     url = (
-        f"{API_BASE}"
+        f"{get_base_api(1)}"
         f"/all/exp/repair/api/between/"
         f"{start_date}/{end_date}/"
     )
@@ -695,7 +865,7 @@ def updateOrCreateRepair(start_date, end_date):
 @transaction.atomic
 def updateOrCreateOil(start_date, end_date):
     url = (
-        f"{API_BASE}"
+        f"{get_base_api(1)}"
         f"/all/exp/oil/by/month/api/between/"
         f"{start_date}/{end_date}/"
     )
@@ -747,7 +917,7 @@ def updateOrCreateOil(start_date, end_date):
 @transaction.atomic
 def updateOrCreateWork(start_date, end_date):
     url = (
-        f"{API_BASE}"
+        f"{get_base_api(1)}"
         f"/all/exp/by/month/api/between/"
         f"{start_date}/{end_date}/"
     )
@@ -811,7 +981,12 @@ def setSessionCompany(request):
 
 def getApiDataToDashbord(request):
     car_dep_id = request.GET.get('car_dep_id', '1')
+    car_type_id = request.GET.get('car_type_id', 'all')
     request.session['car_dep_id'] = car_dep_id
+
+    if car_type_id != 'all' and car_type_id.isdigit():
+        return redirect(f"{reverse('home')}?car_type_id={car_type_id}")
+
     return redirect('home')
 
 def update_base_from_api(request):
@@ -831,7 +1006,7 @@ from django.db import transaction
 
 def updateOrCreateExpBaseCarType():
 
-    url = f"{API_BASE}/exp/basecartype/api/"
+    url = f"{get_base_api(1)}/exp/basecartype/api/"
 
     try:
         data_by_url = get_api_data(url)
@@ -865,7 +1040,7 @@ def updateOrCreateExpBaseCarType():
 
 def updateOrCreateExpBaseRepairType():
 
-    url = f"{API_BASE}/exp/baserepairtype/api/"
+    url = f"{get_base_api(1)}/exp/baserepairtype/api/"
 
     try:
         data_by_url = get_api_data(url)
@@ -899,7 +1074,7 @@ def updateOrCreateExpBaseRepairType():
 
 def updateOrCreateExpBaseCarDepartment():
 
-    url = f"{API_BASE}/exp/basecardepartment/api/"
+    url = f"{get_base_api(1)}/exp/basecardepartment/api/"
 
     try:
         data_by_url = get_api_data(url)
@@ -933,7 +1108,7 @@ def updateOrCreateExpBaseCarDepartment():
 
 def updateOrCreateExpBaseCar():
 
-    url = f"{API_BASE}/exp/basecar/api/"
+    url = f"{get_base_api(1)}/exp/basecar/api/"
 
     try:
         data_by_url = get_api_data(url)

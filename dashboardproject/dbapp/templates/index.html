@@ -23,6 +23,77 @@
     font-weight: bold;
   }
 
+  .car-table-card {
+    overflow: hidden;
+  }
+
+  .car-table-body {
+    padding: var(--bs-card-spacer-y, 1.25rem) var(--bs-card-spacer-x, 1.25rem);
+    overflow-x: auto;
+  }
+
+  .car-table-card .dt-container {
+    color: inherit;
+  }
+
+  .dashboard-car-table {
+    min-width: 1120px;
+    margin-bottom: 0 !important;
+    font-size: 13px;
+  }
+
+  .dashboard-car-table thead th {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.15;
+    text-align: center;
+    vertical-align: middle;
+    white-space: normal;
+  }
+
+  .dashboard-car-table tbody td,
+  .dashboard-car-table tfoot th,
+  .dashboard-car-table tfoot td {
+    line-height: 1.15;
+    vertical-align: middle;
+  }
+
+  .dashboard-car-table .text-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dashboard-car-table .text-center {
+    text-align: center;
+  }
+
+  .dashboard-car-table tfoot th,
+  .dashboard-car-table tfoot td {
+    font-weight: 800;
+    background: var(--bs-table-bg-state, #f8f9fa);
+  }
+
+  .car-table-card .dt-layout-row {
+    margin-top: .5rem;
+  }
+
+  .car-table-card .dt-layout-row:first-child {
+    display: none;
+  }
+
+  .car-table-card .dt-layout-row:last-child {
+    align-items: center;
+  }
+
+  .car-table-card .dt-info {
+    font-size: 13px;
+  }
+
+  .car-table-card .dt-empty {
+    padding: 24px 8px !important;
+    text-align: center !important;
+  }
+
 </style>
 {% endblock %}
 
@@ -43,7 +114,7 @@
         <i class="fa-solid fa-magnifying-glass"></i>
       </a>
     </div-->
-  <div class="col-lg-10 d-flex align-items-center mb-3">
+  <div class="col-lg-8 d-flex align-items-center mb-3">
     <div class="tabs bg-light">
       {% for item in cat %}
       <input
@@ -65,14 +136,27 @@
       <span class="glider"></span>
     </div>
   </div>
+  <div class="col-lg-2 d-flex align-items-center mb-3">
+    <select id="id_car_type" name="car_type_id" class="form-select form-select-xl" onchange="getApiDataToDashbord()">
+      <option value="all" {% if selected_car_type_id == 'all' %}selected{% endif %}>ทั้งหมด</option>
+      {% for car_type in car_types %}
+      <option
+        value="{{ car_type.id }}"
+        {% if selected_car_type_id == car_type.id|stringformat:"s" %}selected{% endif %}
+      >
+        {{ car_type.name }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
   <div class="col-lg-2 d-flex align-items-end mb-3">
-    <button id="resetCarFilter" class="btn btn-danger btn-xl">
-        Reset <i class="fa-solid fa-arrow-rotate-left"></i>
-    </button>
+<button id="resetCarFilter" class="btn btn-danger btn-xl">
+    Reset <i class="fa-solid fa-arrow-rotate-left"></i>
+</button>
     {% if request.user.is_superuser %}
-    <button class="btn btn-success btn-xl" onclick="updateValueAPI()">
+    <!--button class="btn btn-success btn-xl" onclick="updateValueAPI()">
       Update <i class="fa-solid fa-download"></i>
-    </button>
+    </button-->
     {% endif %}
   </div>
   <!--div class="col-lg-3 d-flex align-items-center mb-3">
@@ -87,27 +171,62 @@
   <div class="col-12"> <!-- ✅ wrap row -->
     <div class="row mt-2">
       <div class="col-lg-12 d-flex align-items-center mb-3">
-        <div class="card w-100">
-          <div class="card-body">
-            <table id="carTable" class="table table-hover nowrap table-sm w-100">
+        <div class="card w-100 car-table-card">
+          <div class="card-body car-table-body">
+            <table id="carTable" class="table table-hover table-sm dashboard-car-table nowrap w-100">
               <thead class="table-light">
                 <tr>
-                  <th>No.{{request.session.car_code}}</th>
-                  <th>code</th>
-                  <th>ทะเบียน</th>
+                  <th>No.</th>
                   <th>บริษัท</th>
+                  <th>CODE</th>
+                  <th>NAME</th>
+                  <th>รุ่น</th>
+                  <th>ปีเริ่มใช้งาน</th>
+                  <th>%MA</th>
+                  <th>การทำงาน<br>เฉลี่ยต่อวัน</th>
+                  <th>การทำงาน<br>(hr)</th>
+                  <th>น้ำมันดีเซล(L)</th>
+                  <th>อัตราการใช้<br>เชื้อเพลิง<br>(L/hr)</th>
+                  <th>ค่าใช้จ่ายซ่อม<br>(THB)</th>
+                  <th>ต้นทุนซ่อม<br>(บาท/ชั่วโมง)</th>
                 </tr>
               </thead>
               <tbody>
-                {% for cd in car_by_dep %}
-                <tr id="id_cbd" data-car-code="{{cd.code}}" data-branch-company-id="{{ cd.branch_company.id }}" class="row-click {% if cd.code == request.session.car_code %}active-row{% endif %}">
-                  <td>{{forloop.counter}}</td>
-                  <td>{{cd.code}}</td>
-                  <td>{{cd.name}}</td>
-                  <td>{{cd.branch_company.name}}</td>
+                {% for row in car_table_rows %}
+                <tr data-car-code="{{ row.code }}" data-branch-company-id="{{ row.branch_company_id }}" class="row-click {% if row.code == car_code and row.branch_company_id|stringformat:"s" == request.GET.branch_company_id %}active-row{% endif %}">
+                  <td>{{ forloop.counter }}</td>
+                  <td>{{ row.branch_company_name }}</td>
+                  <td>{{ row.code }}</td>
+                  <td>{{ row.brand }}</td>
+                  <td>{{ row.model }}</td>
+                  <td class="text-center">{{ row.start_year }}</td>
+                  <td class="text-num">{{ row.percent_ma|floatformat:2 }}%</td>
+                  <td class="text-num">{{ row.avg_work_per_day|floatformat:2 }}</td>
+                  <td class="text-num">{{ row.work_total|floatformat:2|intcomma }}</td>
+                  <td class="text-num">{{ row.oil_total|floatformat:2|intcomma }}</td>
+                  <td class="text-num">{{ row.fuel_rate|floatformat:2 }}</td>
+                  <td class="text-num">{{ row.repair_total|floatformat:2|intcomma }}</td>
+                  <td class="text-num">{{ row.repair_cost_per_hr|floatformat:2|intcomma }}</td>
                 </tr>
                 {% endfor %}
               </tbody>
+              <tfoot class="table-light">
+                <tr>
+                  <th></th>
+                  <th class="text-num">รวมทั้งหมด</th>
+                  <th></th>
+                  <th></th>
+                  <th></th>
+                  <th></th>
+                  <th class="text-num">{{ car_table_totals.percent_ma|floatformat:2 }}%</th>
+                  <th class="text-num">{{ car_table_totals.avg_work_per_day|floatformat:2 }}</th>
+                  <th class="text-num">{{ car_table_totals.work_total|floatformat:2|intcomma }}</th>
+                  <th class="text-num">{{ car_table_totals.oil_total|floatformat:2|intcomma }}</th>
+                  <th class="text-num">{{ car_table_totals.fuel_rate|floatformat:2 }}</th>
+                  <th class="text-num">{{ car_table_totals.repair_total|floatformat:2|intcomma }}</th>
+                  <th class="text-num">{{ car_table_totals.repair_cost_per_hr|floatformat:2|intcomma }}</th>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>
@@ -722,10 +841,29 @@
 	 $(document).ready(function () {
       $('#carTable').DataTable({
           pageLength: 5,
-          lengthMenu: [5, 10, 25, 50],
-          responsive: true,
+          lengthChange: false,
+          searching: true,
+          ordering: true,
+          responsive: false,
+          autoWidth: false,
           stateSave: true,
-          stateDuration: -1
+          stateDuration: -1,
+          language: {
+              search: 'Search',
+              info: '_START_ - _END_ / _TOTAL_',
+              infoEmpty: '0 - 0 / 0',
+              emptyTable: 'ไม่มีข้อมูล',
+              paginate: {
+                  previous: '<',
+                  next: '>'
+              }
+          },
+          layout: {
+              topStart: null,
+              topEnd: 'search',
+              bottomStart: 'info',
+              bottomEnd: 'paging'
+          }
       });
     });
 
@@ -734,48 +872,22 @@
     const selectBranchCompanyId = "{{ request.GET.branch_company_id|default:'' }}";
 
     const rows = document.querySelectorAll('#carTable .row-click');
+    const selectedCarTypeId = "{{ selected_car_type_id }}";
 
+    $('#carTable tbody').on('click', 'tr.row-click', function () {
 
-    // active row
-    if (selectCarCode !== 'null') {
+        const carCode = this.dataset.carCode;
+        const branchCompanyId = this.dataset.branchCompanyId;
+        const params = new URLSearchParams();
 
-        rows.forEach(row => {
+        params.set('car_code', carCode);
+        params.set('branch_company_id', branchCompanyId);
 
-            const rowCode = row.dataset.carCode.trim();
-            const rowBranchCompanyId =
-                row.dataset.branchCompanyId.trim();
+        if (selectedCarTypeId !== 'all') {
+            params.set('car_type_id', selectedCarTypeId);
+        }
 
-            if (
-                rowCode === selectCarCode &&
-                rowBranchCompanyId === selectBranchCompanyId
-            ) {
-                row.classList.add('active-row');
-            }
-
-        });
-    }
-
-
-    // click event
-    rows.forEach(row => {
-
-        row.addEventListener('click', function () {
-
-            const carCode = this.dataset.carCode;
-            const branchCompanyId =
-                this.dataset.branchCompanyId;
-
-            // remove all active
-            rows.forEach(r => r.classList.remove('active-row'));
-
-            // active current
-            this.classList.add('active-row');
-
-            // redirect with both params
-            window.location.href =
-                `?car_code=${carCode}&branch_company_id=${branchCompanyId}`;
-
-        });
+        window.location.href = `?${params.toString()}`;
 
     });
     //////////////////  end select row car  //////////////////////////
@@ -797,6 +909,7 @@
 
     $(document).ready(function () {
       $('#id_car').select2({ width: "100%", theme: 'bootstrap-5' });
+      $('#id_car_type').select2({ width: "100%", theme: 'bootstrap-5' });
     });
 
     function generateStablePastelColors(labels) {
@@ -905,9 +1018,12 @@
 
         let car_dep_id =
             document.querySelector('input[name="car_by_dep"]:checked').value;
+        let car_type_id =
+            document.getElementById('id_car_type').value;
 
         window.location.href =
-            "{% url 'getApiDataToDashbord' %}?car_dep_id=" + car_dep_id;
+            "{% url 'getApiDataToDashbord' %}?car_dep_id=" + encodeURIComponent(car_dep_id) +
+            "&car_type_id=" + encodeURIComponent(car_type_id);
     }
 
     //chart ค่าใช้จ่ายตามประเภทการซ่อม

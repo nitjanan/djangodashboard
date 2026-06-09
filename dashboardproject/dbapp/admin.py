@@ -51,7 +51,7 @@ class BaseRepairTypeAdmin(ImportExportModelAdmin):
     search_fields = ['name']
 
 class BaseAPIAdmin(ImportExportModelAdmin):
-    list_display = ['id','url','username', 'password'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_display = ['id','url','apiname','username', 'password'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
 admin.site.register(BaseAffiliatedCompany, BaseAffiliatedCompanyAdmin)

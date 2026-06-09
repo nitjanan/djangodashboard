@@ -10,6 +10,7 @@ User.add_to_class("__str__", get_first_name)
 
 class BaseAPI(models.Model):
     url = models.CharField(max_length=255, blank=True, null = True, verbose_name="url api data")
+    apiname = models.CharField(max_length=255, blank=True, null = True, verbose_name="api name")
     username = models.CharField(max_length=255, blank=True, null = True, verbose_name="username get api")
     password = models.CharField(max_length=255, blank=True, null = True, verbose_name="password get api")
 
