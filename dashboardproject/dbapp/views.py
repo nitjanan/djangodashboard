@@ -187,6 +187,10 @@ def createRepair():
     )
 
     data_by_url = get_api_data(url)
+
+    # ลบหลัง api success เท่านั้น กันข้อมูลซ้ำเมื่อกดซ้ำ
+    deleteOldDataSummary("2026-01-01", today, SummaryRepair)
+
     objs = []
     for item in data_by_url:
 
@@ -225,6 +229,8 @@ def createOil():
     url = f"{get_base_api(1)}/all/exp/oil/by/month/api/between/2026-01-01/{today}/"
     data_by_url = get_api_data(url)
 
+    deleteOldDataSummary("2026-01-01", today, SummaryOil)
+
     objs = []
     for item in data_by_url:
         objs.append(
@@ -257,11 +263,14 @@ def createOil():
     return True
 
 
+@transaction.atomic
 def createWork():
     today = date.today()
 
     url = f"{get_base_api(1)}/all/exp/by/month/api/between/2026-01-01/{today}/"
     data_by_url = get_api_data(url)
+
+    deleteOldDataSummary("2026-01-01", today, SummaryWork)
 
     objs = []
     for item in data_by_url:
@@ -775,6 +784,12 @@ def updateValueAPI(request):
     today = date.today()
     start_in_year =  "2026-01-01"
 
+    # summary มี FK ไป base ต้องโหลด base ก่อน
+    updateOrCreateExpBaseCarType()
+    updateOrCreateExpBaseRepairType()
+    updateOrCreateExpBaseCarDepartment()
+    updateOrCreateExpBaseCar()
+
     updateOrCreateSummaryCarDep(start_in_year, today)
     createRepair()
     createOil()
@@ -1129,10 +1144,10 @@ def updateOrCreateExpBaseCar():
                 BaseCar.objects.update_or_create(
                     id=item['id'],
                     defaults={
-                        'code': item['code'],
+                        'code': item.get('code'),
                         'name': item['name'],
                         'car_dep_id': item['car_dep'],
-                        'car_type_id': item['car_id'],
+                        'car_type_id': item['car_type'],
                     }
                 )
 

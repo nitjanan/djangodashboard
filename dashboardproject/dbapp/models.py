@@ -278,7 +278,7 @@ class SummaryRepair(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.year}-{self.year}:{self.car__name}'
+        return f'{self.year}-{self.month}:{self.car}'
     
 
 class SummaryOil(models.Model):
@@ -340,7 +340,7 @@ class SummaryOil(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.year}-{self.year}:{self.car__name}'
+        return f'{self.year}-{self.month}:{self.car}'
 
 
 class SummaryWork(models.Model):
@@ -401,4 +401,4 @@ class SummaryWork(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.year}-{self.year}:{self.car__name}'
+        return f'{self.year}-{self.month}:{self.car}'
