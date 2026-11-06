@@ -197,3 +197,7 @@ SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = False # เปิดเมื่อใช้ HTTPS
 SESSION_COOKIE_SAMESITE = 'Lax'
+
+# แยก cookie ของแต่ละโปรเจกต์ (browser ไม่แยก cookie ตาม port)
+SESSION_COOKIE_NAME = 'dashboard_sessionid'
+CSRF_COOKIE_NAME = 'dashboard_csrftoken'

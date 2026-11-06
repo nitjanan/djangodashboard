@@ -8,10 +8,12 @@ from django.contrib import messages
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.urls import reverse
 from .models import *
 from datetime import date, timedelta, datetime, time
 import calendar
+import json
 import requests
 from django.db.models import Q, Sum, IntegerField, Min, Max, F, FloatField, Value, Case, When
 from django.db.models.functions import Coalesce, Concat
@@ -55,8 +57,8 @@ def get_base_api(mode):
 # -------------------------
 # get access token
 # -------------------------
-def get_jwt_token():
-    url = f"{get_base_api(1)}/jwt/create/"
+def get_jwt_token(base_url=None):
+    url = f"{base_url or get_base_api(1)}/jwt/create/"
 
     payload = {
         "username": get_base_api(2),
@@ -88,8 +90,8 @@ def verify_token(token):
 # -------------------------
 # refresh token
 # -------------------------
-def refresh_token(refresh):
-    url = f"{get_base_api(1)}/jwt/refresh/"
+def refresh_token(refresh, base_url=None):
+    url = f"{base_url or get_base_api(1)}/jwt/refresh/"
 
     payload = {
         "refresh": refresh
@@ -106,9 +108,10 @@ def refresh_token(refresh):
 # -------------------------
 # call protected api
 # -------------------------
-def get_api_data(api_url):
+def get_api_data(api_url, base_url=None):
+    # base_url: ใช้ขอ token จากเซิร์ฟเวอร์เดียวกับ api_url (None = ใช้ BaseAPI)
     try:
-        access, refresh = get_jwt_token()
+        access, refresh = get_jwt_token(base_url)
 
         headers = {
             "Authorization": f"Bearer {access}"
@@ -122,7 +125,7 @@ def get_api_data(api_url):
 
             # token expired
             if res.status_code == 401:
-                new_access = refresh_token(refresh)
+                new_access = refresh_token(refresh, base_url)
 
                 headers = {
                     "Authorization": f"Bearer {new_access}"
@@ -303,6 +306,161 @@ def createWork():
     )
     return True
 
+# ทดสอบ: ดึงใบแจ้งซ่อมจาก webstock ที่รันบนเครื่อง local
+# เปลี่ยนเป็น None เมื่อ deploy endpoint ขึ้นเซิร์ฟเวอร์จริงแล้ว (จะกลับไปใช้ BaseAPI)
+MAINTENANCE_API_BASE = "http://127.0.0.1:8000"
+
+
+@transaction.atomic
+def createMaintenance():
+    today = date.today()
+    # ย้อนไปต้นปีก่อนหน้า เผื่อใบแจ้งซ่อมที่ซ่อมข้ามปี
+    start_date = date(today.year - 1, 1, 1)
+
+    base_url = MAINTENANCE_API_BASE or get_base_api(1)
+    url = f"{base_url}/all/maintenance/api/between/{start_date}/{today}/"
+    data_by_url = get_api_data(url, base_url)
+
+    # ถ้า api ไม่มีข้อมูล ไม่ลบของเดิม
+    if not data_by_url:
+        return False
+
+    deleteOldDataSummary(start_date, today, SummaryMaintenance)
+
+    # กัน FK error กรณี base ยังไม่ได้อัปเดต
+    car_ids = set(BaseCar.objects.values_list('id', flat=True))
+    car_dep_ids = set(BaseCarDepartment.objects.values_list('id', flat=True))
+    company_ids = set(BaseBranchCompany.objects.values_list('id', flat=True))
+
+    objs = []
+    for item in data_by_url:
+        reported_at = parse_datetime(item['created'] or '')
+        if reported_at is None:
+            continue
+
+        finished_at = parse_datetime(item['chief_update'] or '')
+
+        objs.append(
+            SummaryMaintenance(
+                ext_id=item['id'],
+                summary_date=reported_at.date().replace(day=1),
+                year=reported_at.year,
+                month=reported_at.month,
+                reported_at=reported_at,
+                finished_at=finished_at,
+                mile=item['mile'],
+                ma_type=item['ma_type'],
+                car_state=item['car_state'],
+                is_complete=item['is_complete'],
+                car_id=item['car_id'] if item['car_id'] in car_ids else None,
+                car_dep_id=item['car_dep'] if item['car_dep'] in car_dep_ids else None,
+                branch_company_id=item['branch_company'] if item['branch_company'] in company_ids else None,
+            )
+        )
+
+    SummaryMaintenance.objects.bulk_create(
+        objs,
+        batch_size=1000
+    )
+    return True
+
+
+# ประเภทใบแจ้งซ่อมที่นับเป็น "การเสีย" (02 = ซ่อม)
+MA_TYPE_BREAKDOWN = '02'
+
+
+def repair_hours(reported_at, finished_at):
+    # เวลาซ่อม (ชม.) = ปิดงาน - แจ้งซ่อม, ไม่นับใบที่ยังไม่ปิดหรือเวลาผิด
+    if not finished_at or finished_at <= reported_at:
+        return None
+    return (finished_at - reported_at).total_seconds() / 3600
+
+
+def calMtbf(work_total, failure_count):
+    # MTBF = ชั่วโมงทำงาน / จำนวนครั้งที่เสีย
+    if failure_count > 0 and work_total > 0:
+        return work_total / failure_count
+    return None
+
+
+def calMean(values):
+    return sum(values) / len(values) if values else None
+
+
+def build_reliability(base_filter, current_month):
+    failures = list(
+        SummaryMaintenance.objects
+        .filter(**base_filter, ma_type=MA_TYPE_BREAKDOWN)
+        .values(
+            'car_id',
+            'car__code',
+            'car__name',
+            'branch_company_id',
+            'month',
+            'reported_at',
+            'finished_at',
+        )
+    )
+
+    work_total = float(
+        SummaryWork.objects
+        .filter(**base_filter)
+        .aggregate(total=Sum('sum_diff_mile'))['total'] or 0
+    )
+
+    durations = []
+    month_counts = {}
+    month_durations = {}
+    cars = {}
+
+    for f in failures:
+        hours = repair_hours(f['reported_at'], f['finished_at'])
+        month = int(f['month'])
+        month_counts[month] = month_counts.get(month, 0) + 1
+
+        key = (f['car_id'], f['branch_company_id'])
+        car = cars.setdefault(key, {
+            'label': f"{f['car__name'] or 'ไม่ระบุ'}:{f['car__code'] or ''}".rstrip(':'),
+            'count': 0,
+            'durations': [],
+        })
+        car['count'] += 1
+
+        if hours is not None:
+            durations.append(hours)
+            month_durations.setdefault(month, []).append(hours)
+            car['durations'].append(hours)
+
+    mtbf = calMtbf(work_total, len(failures))
+    mttr = calMean(durations)
+    availability = None
+    if mtbf is not None and mttr is not None:
+        availability = mtbf / (mtbf + mttr) * 100
+
+    months = range(1, current_month + 1)
+    trend_mttr = [calMean(month_durations.get(m, [])) for m in months]
+
+    top_cars = sorted(
+        cars.values(),
+        key=lambda c: (c['count'], calMean(c['durations']) or 0),
+        reverse=True
+    )[:10]
+
+    return {
+        'failure_count': len(failures),
+        'repair_closed': len(durations),
+        'mtbf': mtbf,
+        'mttr': mttr,
+        'availability': availability,
+        # ส่งเป็น JSON เพราะมีค่า None (แสดงเป็นช่องว่างในกราฟ)
+        'trend_labels': json.dumps([all_months[m - 1] for m in months], ensure_ascii=False),
+        'trend_count': json.dumps([month_counts.get(m, 0) for m in months]),
+        'trend_mttr': json.dumps([round(v, 1) if v is not None else None for v in trend_mttr]),
+        'top_labels': json.dumps([c['label'] for c in top_cars], ensure_ascii=False),
+        'top_count': json.dumps([c['count'] for c in top_cars]),
+    }
+
+
 def calByCarDep(car_dep):
     # 🔧 ปรับตามจริงของคุณ
     if str(car_dep) == "2":   # รถบรรทุก/ยานพาหนะ
@@ -347,6 +505,9 @@ def build_car_table_rows(car_dep_id, year, company_in, selected_car_type_id):
                 'fuel_rate': 0,
                 'repair_total': 0,
                 'repair_cost_per_hr': 0,
+                'failure_count': 0,
+                'mtbf': None,
+                'mttr': None,
             }
 
         return rows[key]
@@ -420,6 +581,37 @@ def build_car_table_rows(car_dep_id, year, company_in, selected_car_type_id):
 
         row['work_total'] = work_total
 
+    # ใบแจ้งซ่อมประเภท "ซ่อม" ต่อคัน -> MTBF / MTTR
+    failure_rows = (
+        SummaryMaintenance.objects
+        .filter(**table_filter, ma_type=MA_TYPE_BREAKDOWN)
+        .values(
+            'car_id',
+            'car__code',
+            'car__name',
+            'branch_company_id',
+            'branch_company__name',
+            'reported_at',
+            'finished_at',
+        )
+    )
+
+    all_durations = []
+    car_durations = {}
+
+    for item in failure_rows:
+        row = ensure_row(item)
+        row['failure_count'] += 1
+
+        hours = repair_hours(item['reported_at'], item['finished_at'])
+        if hours is not None:
+            all_durations.append(hours)
+            car_durations.setdefault((item['car_id'], item['branch_company_id']), []).append(hours)
+
+    for key, row in rows.items():
+        row['mtbf'] = calMtbf(row['work_total'], row['failure_count'])
+        row['mttr'] = calMean(car_durations.get(key, []))
+
     table_rows = sorted(rows.values(), key=lambda row: (row['code'], row['branch_company_name']))
     work_total_sum = sum(row['work_total'] for row in table_rows)
     oil_total_sum = sum(row['oil_total'] for row in table_rows)
@@ -435,6 +627,9 @@ def build_car_table_rows(car_dep_id, year, company_in, selected_car_type_id):
         'fuel_rate': oil_total_sum / work_total_sum if work_total_sum > 0 else 0,
         'repair_total': repair_total_sum,
         'repair_cost_per_hr': repair_total_sum / work_total_sum if work_total_sum > 0 else 0,
+        'failure_count': sum(row['failure_count'] for row in table_rows),
+        'mtbf': calMtbf(work_total_sum, sum(row['failure_count'] for row in table_rows)),
+        'mttr': calMean(all_durations),
     }
 
     return table_rows, table_totals
@@ -461,9 +656,12 @@ def home(request):
     selected_car_type_id = request.GET.get('car_type_id', 'all')
     if selected_car_type_id != 'all' and not selected_car_type_id.isdigit():
         selected_car_type_id = 'all'
-    # get from URL only
-    car_code = request.GET.get('car_code', 'null')
-    branch_company_id = request.GET.get('branch_company_id')
+    # get from URL only (เลือกรถด้วย car_id เพราะ code ของรถอาจว่างหรือซ้ำกัน)
+    car_id = request.GET.get('car_id', '')
+    branch_company_id = request.GET.get('branch_company_id', '')
+    if not car_id.isdigit() or not branch_company_id.isdigit():
+        car_id = ''
+        branch_company_id = ''
 
     # เดือนปัจจุบัน
     current_month = datetime.now().month
@@ -517,6 +715,14 @@ def home(request):
         selected_car_type_id
     )
 
+    selected_car = next(
+        (
+            row for row in car_table_rows
+            if str(row['car_id']) == car_id and str(row['branch_company_id']) == branch_company_id
+        ),
+        None
+    )
+
     base_filter = {
         'car_dep_id': car_dep_id,
         'year': '2026'
@@ -526,9 +732,9 @@ def home(request):
         base_filter['car__car_type_id'] = selected_car_type_id
 
     # selected car
-    if car_code != 'null' and branch_company_id:
+    if car_id:
 
-        base_filter['car__code'] = car_code
+        base_filter['car_id'] = car_id
         base_filter['branch_company_id'] = branch_company_id
 
     # normal company tab
@@ -536,6 +742,7 @@ def home(request):
 
         base_filter['branch_company_id__in'] = company_in
 
+    reliability = build_reliability(base_filter, current_month)
 
     repair = (
         SummaryRepair.objects
@@ -691,14 +898,16 @@ def home(request):
         )
 
     expbycar_series = [float(r['amount_sum']) for r in expbycar]
-    expbycar_labels = [r['car_name_code'] if r['car_name_code'] else 'ไม่ระบุ' for r in expbycar]
+    # ตัด ':' ท้ายชื่อ กรณีรถไม่มี code (ได้ "ชื่อ:" จาก Concat)
+    expbycar_labels = [(r['car_name_code'] or '').strip(':') or 'ไม่ระบุ' for r in expbycar]
     expbycar_total = sum(expbycar_series)
 
     return render(
         request,"index.html", 
         {   'selected_car_dep_id': car_dep_id,
             'selected_car_type_id': selected_car_type_id,
-            'cat': cat, 'car_types': car_types, 'car_by_dep': car_by_dep, 'car_code': car_code,
+            'cat': cat, 'car_types': car_types, 'car_by_dep': car_by_dep,
+            'selected_car_id': car_id, 'selected_branch_company_id': branch_company_id, 'selected_car': selected_car,
             'car_table_rows': car_table_rows, 'car_table_totals': car_table_totals,
             'repair_series': repair_series, 'repair_labels': repair_labels, 'repair_total': repair_total,
             'car_type_series': car_type_series, 'car_type_labels': car_type_labels, 'car_type_total': car_type_total,
@@ -707,6 +916,7 @@ def home(request):
             'workbymonth_data1': workbymonth_data1, 'workbymonth_data2': workbymonth_data2 , 'workbymonth_labels': workbymonth_labels,
             'expbycar_series': expbycar_series, 'expbycar_labels': expbycar_labels, 'expbycar_total': expbycar_total,
             'repair_work_data1': repair_work_data1, 'repair_work_data2': repair_work_data2 , 'repair_work_labels': repair_work_labels,
+            'reliability': reliability,
             active :"active",
             'tab_mt' : "active",
         })
@@ -794,7 +1004,14 @@ def updateValueAPI(request):
     createRepair()
     createOil()
     createWork()
-    return redirect('home')
+    maintenance_ok = createMaintenance()
+
+    # ปุ่มเรียกผ่าน ajax (dataType: json) ต้องตอบเป็น JSON ไม่ใช่ redirect
+    return JsonResponse({
+        'status': 'ok',
+        'maintenance': maintenance_ok,
+        'maintenance_count': SummaryMaintenance.objects.count(),
+    })
 
 def update_summary_from_api(request):
     today = date.today()
@@ -814,6 +1031,7 @@ def updateDataSummary(start_date, end_date):
     updateOrCreateRepair(start_date, end_date)
     updateOrCreateOil(start_date, end_date)
     updateOrCreateWork(start_date, end_date)
+    createMaintenance()
     return True
 
 def deleteOldDataSummary(start_date, end_date, modelName):

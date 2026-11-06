@@ -11,8 +11,24 @@
   <link rel="stylesheet" href="{% static 'css/styles.min.css' %}" />
   <style>
 
+    /* แท็บบริษัท: บรรทัดเดียวเสมอ ถ้าไม่พอให้เลื่อนซ้าย-ขวา (ไม่ตัดบรรทัด/ล้นหัวจอ) */
     #nav-tab {
         border-bottom: none !important;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* ให้กล่องแท็บหดตามพื้นที่ที่เหลือ (ค่าเริ่มต้นของ flex จะขยายตามเนื้อหาจนดันรูปโปรไฟล์ตกขอบ) */
+    #navbarNav,
+    #navbarNav > .d-lg-block {
+        min-width: 0;
+    }
+
+    #navbarNav {
+        flex: 1 1 0;
     }
 
     .nav-item {
@@ -24,19 +40,20 @@
     }
 
     #nav-tab .nav-item {
-      flex: 1;
+      flex: 1 0 auto;
     }
 
     #nav-tab .nav-link {
-        width: 100%;
+        width: auto;
         text-align: center;
+        white-space: nowrap;
         color: #09090B !important;
         border: none !important;
         border-bottom: none;
         border-radius: 0 !important;
         font-size: 16px;
         font-weight: 540;
-        padding: 17px 0;
+        padding: 17px 12px;
     }
 
     #nav-tab .nav-link.active {
@@ -2022,51 +2039,8 @@
 
                     <div class="nav nav-tabs nav-fill w-100" id="nav-tab">
                       {% for tab in company_tab %}
-                        {% if 'ALL' in tab.code %}
-                        <a id="{{tab.code}}"  role="button" class="nav-item nav-link {{ALL}}" onClick="setCompany('{{tab.code}}')">{{tab.name}}</a>
-                        {%endif%}
-                        {% if 'S1' in tab.code %}
-                        <a id="{{tab.code}}"  role="button" class="nav-item nav-link {{S1}}" onClick="setCompany('{{tab.code}}')">{{tab.name}}</a>
-                        {%endif%}
-                        {% if 'D1' in tab.code %}
-                        <a id="{{tab.code}}" role="button" class="nav-item nav-link {{D1}}" onClick="setCompany('{{tab.code}}')">{{tab.name}}</a>
-                        {%endif%}
-                        {% if 'L1' in tab.code %}
-                        <a id="{{tab.code}}" role="button" class="nav-item nav-link {{L1}}" onClick="setCompany('{{tab.code}}')">{{tab.name}}</a>
-                        {%endif%}
-                        {% if 'U1' in tab.code %}
-                        <a id="{{tab.code}}" role="button" class="nav-item nav-link {{U1}}" onClick="setCompany('{{tab.code}}')">{{tab.name}}</a>
-                        {%endif%}
-                        {% if 'G1' in tab.code %}
-                        <a id="{{tab.code}}" role="button" class="nav-item nav-link {{G1}}" onClick="setCompany('{{tab.code}}')">{{tab.name}}</a>
-                        {%endif%}
-                        {% if 'R1' in tab.code %}
-                        <a id="{{tab.code}}" role="button" class="nav-item nav-link {{R1}}" onClick="setCompany('{{tab.code}}')">{{tab.name}}</a>
-                        {%endif%}
-                        {% if 'Y1' in tab.code %}
-                        <a id="{{tab.code}}" role="button" class="nav-item nav-link {{Y1}}" onClick="setCompany('{{tab.code}}')">{{tab.name}}</a>
-                        {%endif%}
-                        {% if 'P1' in tab.code %}
-                        <a id="{{tab.code}}" role="button" class="nav-item nav-link {{P1}}" onClick="setCompany('{{tab.code}}')">{{tab.name}}</a>
-                        {%endif%}
-                        {% if 'B1' in tab.code %}
-                        <a id="{{tab.code}}" role="button" class="nav-item nav-link {{B1}}" onClick="setCompany('{{tab.code}}')">{{tab.name}}</a>
-                        {%endif%}
-                        {% if 'J1' in tab.code %}
-                        <a id="{{tab.code}}" role="button" class="nav-item nav-link {{J1}}" onClick="setCompany('{{tab.code}}')">{{tab.name}}</a>
-                        {%endif%}
-                        {% if 'P2' in tab.code %}
-                        <a id="{{tab.code}}" role="button" class="nav-item nav-link {{P2}}" onClick="setCompany('{{tab.code}}')">{{tab.name}}</a>
-                        {%endif%}
-                        {% if 'Y2' in tab.code %}
-                        <a id="{{tab.code}}" role="button" class="nav-item nav-link {{Y2}}" onClick="setCompany('{{tab.code}}')">{{tab.name}}</a>
-                        {%endif%}
-                        {% if 'Y4' in tab.code %}
-                        <a id="{{tab.code}}" role="button" class="nav-item nav-link {{Y4}}" onClick="setCompany('{{tab.code}}')">{{tab.name}}</a>
-                        {%endif%}
-                        {% if 'Y5' in tab.code %}
-                        <a id="{{tab.code}}" role="button" class="nav-item nav-link {{Y5}}" onClick="setCompany('{{tab.code}}')">{{tab.name}}</a>
-                        {%endif%}
+                        {# วนทุกบริษัทที่ผู้ใช้มีสิทธิ์ เพิ่มบริษัทใหม่ใน database แล้วแสดงเองได้ ไม่ต้องแก้ template #}
+                        <a id="{{ tab.code }}" role="button" class="nav-item nav-link {% if tab.code == request.session.company_code %}active{% endif %}" onClick="setCompany('{{ tab.code }}')">{{ tab.name }}</a>
                       {% endfor %}
                     </div>
                 </div>
@@ -2082,69 +2056,8 @@
 
                         {% for tab in company_tab %}
 
-                        <option value="{{tab.code}}"
-                            {% if 'ALL' in tab.code and ALL == 'active' %}
-                                selected
-                            {% endif %}
-
-                            {% if 'S1' in tab.code and S1 == 'active' %}
-                                selected
-                            {% endif %}
-                            
-                            {% if 'D1' in tab.code and D1 == 'active' %}
-                                selected
-                            {% endif %}
-                            
-                            {% if 'L1' in tab.code and L1 == 'active' %}
-                                selected
-                            {% endif %}
-
-                            {% if 'U1' in tab.code and U1 == 'active' %}
-                                selected
-                            {% endif %}
-
-                            {% if 'G1' in tab.code and G1 == 'active' %}
-                                selected
-                            {% endif %}
-
-                            {% if 'R1' in tab.code and R1 == 'active' %}
-                                selected
-                            {% endif %}
-
-                            {% if 'Y1' in tab.code and Y1 == 'active' %}
-                                selected
-                            {% endif %}
-
-                            {% if 'P1' in tab.code and P1 == 'active' %}
-                                selected
-                            {% endif %}
-
-                            {% if 'B1' in tab.code and B1 == 'active' %}
-                                selected
-                            {% endif %}
-
-                            {% if 'J1' in tab.code and J1 == 'active' %}
-                                selected
-                            {% endif %}
-
-                            {% if 'P2' in tab.code and P2 == 'active' %}
-                                selected
-                            {% endif %}
-
-                            {% if 'Y2' in tab.code and Y2 == 'active' %}
-                                selected
-                            {% endif %}
-
-                            {% if 'Y4' in tab.code and Y4 == 'active' %}
-                                selected
-                            {% endif %}
-
-                            {% if 'Y5' in tab.code and Y5 == 'active' %}
-                                selected
-                            {% endif %}>
-
-                            {{tab.code}}-{{tab.name}}
-
+                        <option value="{{ tab.code }}" {% if tab.code == request.session.company_code %}selected{% endif %}>
+                            {{ tab.code }}-{{ tab.name }}
                         </option>
 
                         {% endfor %}
@@ -2209,6 +2122,14 @@
   {% block script %}
   {% endblock %}
   <script>
+    // เลื่อนแท็บบริษัทที่เลือกอยู่ให้อยู่ในจอ
+    (function () {
+      var activeTab = document.querySelector('#nav-tab .nav-link.active');
+      if (activeTab) {
+        activeTab.scrollIntoView({ block: 'nearest', inline: 'center' });
+      }
+    })();
+
     function setCompany(name){
         var titleInput = name;
         if (titleInput) {
@@ -2220,7 +2141,7 @@
                 dataType: 'json',
                 success: function (data) {
                     if (data.instance) {
-                        // reload without old ?car_code=
+                        // reload without old ?car_id=
                         window.location.href = window.location.pathname;
                     }
                 }

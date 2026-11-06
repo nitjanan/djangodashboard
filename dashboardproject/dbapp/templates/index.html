@@ -7,29 +7,426 @@
 {% endblock %}
 
 {% block css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  .row-click {
-    cursor: pointer;
+  /* ---------- theme tokens ---------- */
+  :root {
+    --canvas: #EEF1F4;
+    --surface: #FFFFFF;
+    --ink: #172033;
+    --muted: #5B6577;
+    --line: #DCE1E8;
+    --line-soft: #EBEEF2;
+    --teal: #0E7C7B;
+    --teal-soft: #E3F1F0;
+    --amber: #E9A23B;
+    --radius: 14px;
   }
 
-  .row-click:hover td {
-    background-color: #f5f5f5;
+  body,
+  .body-wrapper {
+    background: var(--canvas) !important;
   }
 
-  /* active selected row */
-  tr.active-row td {
-    background-color: #EAFAEF !important; /* light blue */
-    color: #229645 !important;            /* blue text */
-    font-weight: bold;
+  body,
+  .dash,
+  .dash .form-select,
+  .dash .btn,
+  .select2-container {
+    font-family: "IBM Plex Sans Thai", "Inter", sans-serif;
   }
 
-  .car-table-card {
+  .dash {
+    display: grid;
+    gap: 20px;
+    min-width: 0;
+    color: var(--ink);
+  }
+
+  /* ---------- page header ---------- */
+  .dash-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 4px;
+  }
+
+  .dash-header h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    line-height: 1.25;
+    color: var(--ink);
+  }
+
+  .dash-header p {
+    margin: 4px 0 0;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .car-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 6px 14px;
+    border-radius: 999px;
+    background: var(--teal-soft);
+    color: var(--teal);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .car-chip a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    color: var(--teal);
+    text-decoration: none;
+  }
+
+  .car-chip a:hover,
+  .car-chip a:focus-visible {
+    background: rgba(14, 124, 123, .15);
+  }
+
+  /* ---------- panels ---------- */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    min-width: 0;
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .panel-head h5 {
+    margin: 0;
+    white-space: nowrap;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .panel-sub {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .panel-total {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line-soft);
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .panel-total strong {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- toolbar ---------- */
+  .dash-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 16px;
+    padding: 10px;
+  }
+
+  .dash-toolbar .tabs {
+    flex: 1 1 360px;
+    min-width: 0;
+    padding: 4px;
+    border-radius: 10px;
+    background: var(--canvas) !important;
+    box-shadow: none;
+  }
+
+  .dash-toolbar .tab {
+    height: 38px;
+    border-radius: 8px;
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 15px;
+    transition: color .3s ease;
+  }
+
+  .dash-toolbar .tab:hover {
+    color: var(--ink);
+  }
+
+  /* น้ำหนักตัวอักษรเท่าเดิม เพื่อไม่ให้ข้อความกระตุกตอนสลับแท็บ */
+  .dash-toolbar .tab-radio:checked + .tab {
+    color: #fff;
+    font-weight: 500;
+  }
+
+  .dash-toolbar .glider {
+    top: 4px;
+    left: 4px;
+    height: calc(100% - 8px);
+    width: calc((100% - 8px) / var(--tabs-count));
+    border-radius: 8px;
+    background: var(--ink);
+    transition: transform .42s cubic-bezier(.65, 0, .35, 1);
+    will-change: transform;
+  }
+
+  /* ใช้ตอนโหลดหน้า: วาง glider ที่แท็บที่เลือกทันทีโดยไม่เลื่อน */
+  .dash-toolbar .tabs.no-anim .glider,
+  .dash-toolbar .tabs.no-anim .tab {
+    transition: none;
+  }
+
+  .dash-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dash-select {
+    width: 220px;
+  }
+
+  .dash .select2-container--bootstrap-5 .select2-selection {
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    border-color: var(--line);
+    border-radius: 10px;
+  }
+
+  .dash-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 46px;
+    padding: 0 18px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  .dash-btn-ghost {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink);
+  }
+
+  .dash-btn-ghost:hover {
+    background: var(--canvas);
+    color: var(--ink);
+  }
+
+  .dash-btn-primary {
+    background: var(--teal);
+    border: 1px solid var(--teal);
+    color: #fff;
+  }
+
+  .dash-btn-primary:hover {
+    background: #0B6564;
+    border-color: #0B6564;
+    color: #fff;
+  }
+
+  .dash :focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+
+  /* ---------- KPI band ---------- */
+  .kpi-band {
+    display: grid;
+    /* จำนวนคอลัมน์ตายตัวต่อขนาดจอ ให้แถวเต็มเสมอ ไม่เหลือช่องว่าง */
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 1px;
+    overflow: hidden;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+
+  .kpi {
+    background: var(--surface);
+    padding: 18px 20px;
+    min-width: 0;
+  }
+
+  .kpi-label {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .kpi-value {
+    margin-top: 6px;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -.01em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .kpi-value small {
+    margin-left: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    color: var(--muted);
+  }
+
+  .kpi-feature {
+    background: var(--ink);
+    color: #fff;
+  }
+
+  .kpi-feature .kpi-label,
+  .kpi-feature .kpi-value small {
+    color: rgba(255, 255, 255, .7);
+  }
+
+  .kpi-feature .kpi-value {
+    font-size: 30px;
+    color: var(--amber);
+  }
+
+  .kpi-meter {
+    height: 6px;
+    margin-top: 10px;
+    border-radius: 999px;
+    background: var(--line-soft);
     overflow: hidden;
   }
 
+  .kpi-meter span {
+    display: block;
+    height: 100%;
+    max-width: 100%;
+    border-radius: inherit;
+    background: var(--teal);
+  }
+
+  .rel-band {
+    margin-bottom: 4px;
+  }
+
+  .rel-band .kpi {
+    background: #F9FAFB;
+  }
+
+  .kpi-note {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .rel-charts {
+    margin-top: 20px;
+  }
+
+  .panel-tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .export-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color .15s ease, border-color .15s ease, background-color .15s ease;
+  }
+
+  .export-btn i {
+    color: #1D6F42; /* สีไอคอน Excel */
+  }
+
+  .export-btn:hover {
+    color: var(--ink);
+    border-color: #1D6F42;
+    background: #F1F8F4;
+  }
+
+  .rel-chart-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+
+  .rel-empty {
+    margin-top: 16px;
+    padding: 28px 16px;
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  /* ---------- vehicle table ---------- */
+  .car-table-card {
+    overflow: hidden;
+    padding: 20px 0 0;
+  }
+
+  .car-table-card .panel-head {
+    padding: 0 22px;
+  }
+
   .car-table-body {
-    padding: var(--bs-card-spacer-y, 1.25rem) var(--bs-card-spacer-x, 1.25rem);
+    padding: 0 22px 16px;
+  }
+
+  /* เลื่อนซ้าย-ขวาเฉพาะตัวตาราง ช่องค้นหาและปุ่มเปลี่ยนหน้าอยู่ในจอเสมอ */
+  .car-table-card .dt-layout-table > .dt-layout-full {
+    display: block !important;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .car-table-card .dt-paging .pagination {
+    flex-wrap: wrap;
+    row-gap: 4px;
   }
 
   .car-table-card .dt-container {
@@ -37,24 +434,39 @@
   }
 
   .dashboard-car-table {
-    min-width: 1120px;
+    min-width: 1360px;
     margin-bottom: 0 !important;
-    font-size: 13px;
+    font-size: 13.5px;
+    color: var(--ink);
   }
 
   .dashboard-car-table thead th {
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1.15;
+    padding: 10px 8px !important;
+    background: #F6F8FA !important;
+    border-bottom: 1px solid var(--line) !important;
+    color: var(--muted);
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 1.25;
     text-align: center;
     vertical-align: middle;
     white-space: normal;
   }
 
-  .dashboard-car-table tbody td,
+  .dashboard-car-table tbody td {
+    padding: 10px 8px !important;
+    border-bottom: 1px solid var(--line-soft);
+    line-height: 1.25;
+    vertical-align: middle;
+  }
+
   .dashboard-car-table tfoot th,
   .dashboard-car-table tfoot td {
-    line-height: 1.15;
+    padding: 12px 8px !important;
+    background: #F6F8FA !important;
+    border-top: 1px solid var(--line);
+    font-weight: 700;
+    line-height: 1.25;
     vertical-align: middle;
   }
 
@@ -67,14 +479,26 @@
     text-align: center;
   }
 
-  .dashboard-car-table tfoot th,
-  .dashboard-car-table tfoot td {
-    font-weight: 800;
-    background: var(--bs-table-bg-state, #f8f9fa);
+  .row-click {
+    cursor: pointer;
+  }
+
+  .row-click:hover td {
+    background-color: #F6F8FA !important;
+  }
+
+  tr.active-row td {
+    background-color: var(--teal-soft) !important;
+    color: var(--teal) !important;
+    font-weight: 600;
+  }
+
+  tr.active-row td:first-child {
+    box-shadow: inset 3px 0 0 var(--teal);
   }
 
   .car-table-card .dt-layout-row {
-    margin-top: .5rem;
+    margin-top: .75rem;
   }
 
   .car-table-card .dt-layout-row:first-child {
@@ -87,18 +511,229 @@
 
   .car-table-card .dt-info {
     font-size: 13px;
+    color: var(--muted);
+  }
+
+  .car-table-card .dt-paging .page-link {
+    border-radius: 8px !important;
+    margin: 0 2px;
+    border-color: var(--line);
+    color: var(--ink);
+  }
+
+  .car-table-card .dt-paging .active .page-link {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
   }
 
   .car-table-card .dt-empty {
-    padding: 24px 8px !important;
+    padding: 32px 8px !important;
     text-align: center !important;
+    color: var(--muted);
+  }
+
+  /* ---------- chart grid ---------- */
+  .dash-split {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .dash-stack {
+    display: grid;
+    gap: 20px;
+    align-content: start;
+  }
+
+  .dash-pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .apexcharts-text,
+  .apexcharts-legend-text,
+  .apexcharts-tooltip {
+    font-family: "IBM Plex Sans Thai", "Inter", sans-serif !important;
+  }
+
+  .rel-band {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .dash-btn {
+    white-space: nowrap;
+  }
+
+  /* กราฟ/ตารางที่กว้างกว่าจอ เลื่อนซ้าย-ขวาได้ */
+  .chart-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .scroll-hint {
+    display: none;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .scroll-hint-table {
+    margin: 0 22px 8px;
+  }
+
+  /* tablet แนวนอน / notebook เล็ก */
+  @media (max-width: 1199.98px) {
+    /* แท็บแผนกขึ้นบรรทัดของตัวเอง ไม่ให้ชื่อเบียดกัน */
+    .dash-toolbar .tabs {
+      flex-basis: 100%;
+    }
+
+    .dash-toolbar-actions {
+      width: 100%;
+    }
+
+    .dash-toolbar-actions .dash-select {
+      flex: 1;
+    }
+
+    .kpi-band {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .rel-band {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 991.98px) {
+    .dash-split {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .rel-band {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dash-toolbar-actions,
+    .dash-select {
+      width: 100%;
+    }
+
+    .dash-toolbar-actions .dash-btn {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .dash-toolbar .tabs {
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .dash-toolbar .tab {
+      flex: 1 1 calc(50% - 4px);
+      height: 36px;
+      font-size: 14px;
+    }
+
+    .dash-toolbar .glider {
+      display: none;
+    }
+
+    .dash-toolbar .tab-radio:checked + .tab {
+      background: var(--ink);
+    }
+
+    .panel-head {
+      flex-wrap: wrap;
+    }
+
+    .scroll-hint {
+      display: block;
+    }
+  }
+
+  /* มือถือ */
+  @media (max-width: 575.98px) {
+    .dash {
+      gap: 14px;
+    }
+
+    .dash-header h1 {
+      font-size: 22px;
+    }
+
+    .panel {
+      padding: 16px;
+    }
+
+    .car-table-card {
+      padding: 16px 0 0;
+    }
+
+    .car-table-card .panel-head {
+      padding: 0 16px;
+    }
+
+    .car-table-body {
+      padding: 0 16px 16px;
+    }
+
+    .scroll-hint-table {
+      margin: 0 16px 8px;
+    }
+
+    .dash-btn {
+      height: 42px;
+      padding: 0 12px;
+      font-size: 14px;
+    }
+
+    /* ตัวเลขสรุป 2 คอลัมน์ ช่องเด่นกับช่องสุดท้ายเต็มแถว */
+    .kpi-band,
+    .rel-band {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .kpi-band:not(.rel-band) .kpi-feature,
+    .kpi-band:not(.rel-band) .kpi:last-child {
+      grid-column: span 2;
+    }
+
+    .kpi {
+      padding: 14px;
+    }
+
+    .kpi-value {
+      font-size: 20px;
+      white-space: normal;
+    }
+
+    .kpi-value small {
+      display: inline-block;
+      margin-left: 4px;
+    }
+
+    .kpi-feature .kpi-value {
+      font-size: 26px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dash-toolbar .glider,
+    .dash-toolbar .tab {
+      transition: none;
+    }
   }
 
 </style>
 {% endblock %}
 
 {% block content%}
-<div class="row">
+<div class="dash">
   <!--div class="col-lg-3 d-flex align-items-center gap-2">
       <div id="reportrange"
         style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%; height: 35px;"
@@ -114,7 +749,22 @@
         <i class="fa-solid fa-magnifying-glass"></i>
       </a>
     </div-->
-  <div class="col-lg-8 d-flex align-items-center mb-3">
+  <!-- Page header -->
+  <div class="dash-header">
+    <div>
+      <h1>ภาพรวมงานซ่อมบำรุง ปี 2026</h1>
+      <p>{{ request.session.company }}</p>
+    </div>
+    {% if selected_car %}
+    <span class="car-chip">
+      กำลังดูข้อมูล {{ selected_car.code|default:selected_car.name }}
+      <a href="{{ request.path }}" aria-label="ดูข้อมูลทั้งหมด"><i class="ti ti-x"></i></a>
+    </span>
+    {% endif %}
+  </div>
+
+  <!-- Toolbar -->
+  <div class="panel dash-toolbar">
     <div class="tabs bg-light">
       {% for item in cat %}
       <input
@@ -126,252 +776,238 @@
         {% if selected_car_dep_id == item.id|stringformat:"s" %}
           checked
         {% endif %}
-        onchange="getApiDataToDashbord()"
       />
-
       <label class="tab" for="radio-{{ forloop.counter }}">
         {{ item.name }}
       </label>
       {% endfor %}
       <span class="glider"></span>
     </div>
+    <div class="dash-toolbar-actions">
+      <div class="dash-select">
+        <select id="id_car_type" name="car_type_id" class="form-select" onchange="getApiDataToDashbord()">
+          <option value="all" {% if selected_car_type_id == 'all' %}selected{% endif %}>ทุกประเภทรถ</option>
+          {% for car_type in car_types %}
+          <option
+            value="{{ car_type.id }}"
+            {% if selected_car_type_id == car_type.id|stringformat:"s" %}selected{% endif %}
+          >
+            {{ car_type.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <button id="resetCarFilter" class="btn dash-btn dash-btn-ghost">
+        <i class="fa-solid fa-arrow-rotate-left"></i> ล้างตัวกรอง
+      </button>
+      {% if request.user.is_superuser %}
+      <button id="updateValueBtn" class="btn dash-btn dash-btn-primary" onclick="updateValueAPI()">
+        <i class="fa-solid fa-download"></i> อัปเดตข้อมูล
+      </button>
+      {% endif %}
+    </div>
   </div>
-  <div class="col-lg-2 d-flex align-items-center mb-3">
-    <select id="id_car_type" name="car_type_id" class="form-select form-select-xl" onchange="getApiDataToDashbord()">
-      <option value="all" {% if selected_car_type_id == 'all' %}selected{% endif %}>ทั้งหมด</option>
-      {% for car_type in car_types %}
-      <option
-        value="{{ car_type.id }}"
-        {% if selected_car_type_id == car_type.id|stringformat:"s" %}selected{% endif %}
-      >
-        {{ car_type.name }}
-      </option>
-      {% endfor %}
-    </select>
+
+  <!-- Summary -->
+  <div class="kpi-band">
+    <div class="kpi kpi-feature">
+      <div class="kpi-label">ค่าซ่อมรวม</div>
+      <div class="kpi-value">{{ car_table_totals.repair_total|floatformat:0|intcomma }}<small>บาท</small></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">ต้นทุนซ่อมต่อชั่วโมง</div>
+      <div class="kpi-value">{{ car_table_totals.repair_cost_per_hr|floatformat:2|intcomma }}<small>บาท/ชม.</small></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">%MA เฉลี่ย</div>
+      <div class="kpi-value">{{ car_table_totals.percent_ma|floatformat:1 }}<small>%</small></div>
+      <div class="kpi-meter"><span style="width: {{ car_table_totals.percent_ma|floatformat:0 }}%"></span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">การทำงานรวม</div>
+      <div class="kpi-value">{{ car_table_totals.work_total|floatformat:0|intcomma }}<small>ชม.</small></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">น้ำมันดีเซลรวม</div>
+      <div class="kpi-value">{{ car_table_totals.oil_total|floatformat:0|intcomma }}<small>ลิตร</small></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">อัตราการใช้เชื้อเพลิง</div>
+      <div class="kpi-value">{{ car_table_totals.fuel_rate|floatformat:2 }}<small>ลิตร/ชม.</small></div>
+    </div>
   </div>
-  <div class="col-lg-2 d-flex align-items-end mb-3">
-<button id="resetCarFilter" class="btn btn-danger btn-xl">
-    Reset <i class="fa-solid fa-arrow-rotate-left"></i>
-</button>
-    {% if request.user.is_superuser %}
-    <button class="btn btn-success btn-xl" onclick="updateValueAPI()">
-      Update <i class="fa-solid fa-download"></i>
-    </button>
+
+  <!-- Vehicle table -->
+  <div class="panel car-table-card">
+    <div class="panel-head">
+      <h5>รายการรถ</h5>
+      <div class="panel-tools">
+        <span class="panel-sub">คลิกแถวเพื่อดูกราฟของรถคันนั้น</span>
+        <button type="button" class="export-btn" data-export="carTable" data-title="รายการรถ"
+          aria-label="ดาวน์โหลด Excel: รายการรถ ทุกแถว"><i class="fa-solid fa-file-excel"></i> Excel</button>
+      </div>
+    </div>
+    <div class="scroll-hint scroll-hint-table">เลื่อนซ้าย-ขวาเพื่อดูคอลัมน์ทั้งหมด</div>
+    <div class="car-table-body">
+      <table id="carTable" class="table table-hover table-sm dashboard-car-table nowrap w-100">
+        <thead class="table-light">
+          <tr>
+            <th>No.</th>
+            <th>บริษัท</th>
+            <th>CODE</th>
+            <th>NAME</th>
+            <th>รุ่น</th>
+            <th>ปีเริ่มใช้งาน</th>
+            <th>%MA</th>
+            <th>การทำงาน<br>เฉลี่ยต่อวัน</th>
+            <th>การทำงาน<br>(hr)</th>
+            <th>น้ำมันดีเซล(L)</th>
+            <th>อัตราการใช้<br>เชื้อเพลิง<br>(L/hr)</th>
+            <th>ค่าใช้จ่ายซ่อม<br>(THB)</th>
+            <th>ต้นทุนซ่อม<br>(บาท/ชั่วโมง)</th>
+            <th>จำนวนครั้ง<br>ที่เสีย</th>
+            <th>MTBF<br>(ชม.)</th>
+            <th>MTTR<br>(ชม.)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in car_table_rows %}
+          <tr data-car-id="{{ row.car_id }}" data-branch-company-id="{{ row.branch_company_id }}" class="row-click {% if row.car_id|stringformat:"s" == selected_car_id and row.branch_company_id|stringformat:"s" == selected_branch_company_id %}active-row{% endif %}">
+            <td>{{ forloop.counter }}</td>
+            <td>{{ row.branch_company_name }}</td>
+            <td>{{ row.code }}</td>
+            <td>{{ row.brand }}</td>
+            <td>{{ row.model }}</td>
+            <td class="text-center">{{ row.start_year }}</td>
+            <td class="text-num">{{ row.percent_ma|floatformat:2 }}%</td>
+            <td class="text-num">{{ row.avg_work_per_day|floatformat:2 }}</td>
+            <td class="text-num">{{ row.work_total|floatformat:2|intcomma }}</td>
+            <td class="text-num">{{ row.oil_total|floatformat:2|intcomma }}</td>
+            <td class="text-num">{{ row.fuel_rate|floatformat:2 }}</td>
+            <td class="text-num">{{ row.repair_total|floatformat:2|intcomma }}</td>
+            <td class="text-num">{{ row.repair_cost_per_hr|floatformat:2|intcomma }}</td>
+            <td class="text-num">{{ row.failure_count }}</td>
+            <td class="text-num">{{ row.mtbf|floatformat:1|intcomma|default:"-" }}</td>
+            <td class="text-num">{{ row.mttr|floatformat:1|intcomma|default:"-" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="table-light">
+          <tr>
+            <th></th>
+            <th class="text-num">รวมทั้งหมด</th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th class="text-num">{{ car_table_totals.percent_ma|floatformat:2 }}%</th>
+            <th class="text-num">{{ car_table_totals.avg_work_per_day|floatformat:2 }}</th>
+            <th class="text-num">{{ car_table_totals.work_total|floatformat:2|intcomma }}</th>
+            <th class="text-num">{{ car_table_totals.oil_total|floatformat:2|intcomma }}</th>
+            <th class="text-num">{{ car_table_totals.fuel_rate|floatformat:2 }}</th>
+            <th class="text-num">{{ car_table_totals.repair_total|floatformat:2|intcomma }}</th>
+            <th class="text-num">{{ car_table_totals.repair_cost_per_hr|floatformat:2|intcomma }}</th>
+            <th class="text-num">{{ car_table_totals.failure_count }}</th>
+            <th class="text-num">{{ car_table_totals.mtbf|floatformat:1|intcomma|default:"-" }}</th>
+            <th class="text-num">{{ car_table_totals.mttr|floatformat:1|intcomma|default:"-" }}</th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- Reliability: MTBF / MTTR -->
+  <div class="panel">
+    <div class="panel-head">
+      <h5>ความถี่การเสียและเวลาซ่อม</h5>
+      <span class="panel-sub">นับเฉพาะใบแจ้งซ่อมประเภท "ซ่อม"</span>
+    </div>
+
+    <div class="kpi-band rel-band">
+      <div class="kpi">
+        <div class="kpi-label">จำนวนครั้งที่เสีย</div>
+        <div class="kpi-value">{{ reliability.failure_count|intcomma }}<small>ครั้ง</small></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">MTBF ระยะเวลาเฉลี่ยระหว่างการเสีย</div>
+        <div class="kpi-value">{{ reliability.mtbf|floatformat:1|intcomma|default:"-" }}<small>ชม.</small></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">MTTR เวลาซ่อมเฉลี่ย</div>
+        <div class="kpi-value">{{ reliability.mttr|floatformat:1|intcomma|default:"-" }}<small>ชม.</small></div>
+        <div class="kpi-note">จากใบที่ปิดงานแล้ว {{ reliability.repair_closed }} ใบ</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">ความพร้อมใช้งาน (Availability)</div>
+        <div class="kpi-value">{{ reliability.availability|floatformat:1|default:"-" }}<small>%</small></div>
+        {% if reliability.availability is not None %}
+        <div class="kpi-meter"><span style="width: {{ reliability.availability|floatformat:0 }}%"></span></div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if reliability.failure_count %}
+    <div class="dash-split rel-charts">
+      <div>
+        <div class="rel-chart-title"><span>จำนวนครั้งที่เสียและเวลาซ่อมเฉลี่ยรายเดือน</span><button type="button" class="export-btn" data-export="chart-reliability" data-title="จำนวนครั้งที่เสียและเวลาซ่อมเฉลี่ยรายเดือน" data-unit="ครั้ง, ชั่วโมง" aria-label="ดาวน์โหลด Excel: จำนวนครั้งที่เสียและเวลาซ่อมเฉลี่ยรายเดือน"><i class="fa-solid fa-file-excel"></i> Excel</button></div>
+        <div id="chart-reliability"></div>
+      </div>
+      <div>
+        <div class="rel-chart-title"><span>รถที่เสียบ่อยที่สุด</span><button type="button" class="export-btn" data-export="chart-top-failures" data-title="รถที่เสียบ่อยที่สุด" data-unit="ครั้ง" aria-label="ดาวน์โหลด Excel: รถที่เสียบ่อยที่สุด"><i class="fa-solid fa-file-excel"></i> Excel</button></div>
+        <div id="chart-top-failures"></div>
+      </div>
+    </div>
+    {% else %}
+    <div class="rel-empty">
+      ยังไม่มีใบแจ้งซ่อมประเภท "ซ่อม" ในช่วงนี้
+      กราฟจะแสดงเมื่อใบแจ้งซ่อมในระบบสต็อกระบุประเภทเป็น "ซ่อม" แล้วกด "อัปเดตข้อมูล"
+    </div>
     {% endif %}
   </div>
-  <!--div class="col-lg-3 d-flex align-items-center mb-3">
-    <select id="id_car" class="form-select form-select-xl">
-      <option value="all">ทั้งหมด</option>
-      {% for cd in car_by_dep %}
-      <option value="{{cd.id}}">{{cd.name}}:{{cd.code}}</option>
-      {% endfor %}
-    </select>
-  </!--div>
- <--  Row 1 -->
-  <div class="col-12"> <!-- ✅ wrap row -->
-    <div class="row mt-2">
-      <div class="col-lg-12 d-flex align-items-center mb-3">
-        <div class="card w-100 car-table-card">
-          <div class="card-body car-table-body">
-            <table id="carTable" class="table table-hover table-sm dashboard-car-table nowrap w-100">
-              <thead class="table-light">
-                <tr>
-                  <th>No.</th>
-                  <th>บริษัท</th>
-                  <th>CODE</th>
-                  <th>NAME</th>
-                  <th>รุ่น</th>
-                  <th>ปีเริ่มใช้งาน</th>
-                  <th>%MA</th>
-                  <th>การทำงาน<br>เฉลี่ยต่อวัน</th>
-                  <th>การทำงาน<br>(hr)</th>
-                  <th>น้ำมันดีเซล(L)</th>
-                  <th>อัตราการใช้<br>เชื้อเพลิง<br>(L/hr)</th>
-                  <th>ค่าใช้จ่ายซ่อม<br>(THB)</th>
-                  <th>ต้นทุนซ่อม<br>(บาท/ชั่วโมง)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in car_table_rows %}
-                <tr data-car-code="{{ row.code }}" data-branch-company-id="{{ row.branch_company_id }}" class="row-click {% if row.code == car_code and row.branch_company_id|stringformat:"s" == request.GET.branch_company_id %}active-row{% endif %}">
-                  <td>{{ forloop.counter }}</td>
-                  <td>{{ row.branch_company_name }}</td>
-                  <td>{{ row.code }}</td>
-                  <td>{{ row.brand }}</td>
-                  <td>{{ row.model }}</td>
-                  <td class="text-center">{{ row.start_year }}</td>
-                  <td class="text-num">{{ row.percent_ma|floatformat:2 }}%</td>
-                  <td class="text-num">{{ row.avg_work_per_day|floatformat:2 }}</td>
-                  <td class="text-num">{{ row.work_total|floatformat:2|intcomma }}</td>
-                  <td class="text-num">{{ row.oil_total|floatformat:2|intcomma }}</td>
-                  <td class="text-num">{{ row.fuel_rate|floatformat:2 }}</td>
-                  <td class="text-num">{{ row.repair_total|floatformat:2|intcomma }}</td>
-                  <td class="text-num">{{ row.repair_cost_per_hr|floatformat:2|intcomma }}</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-              <tfoot class="table-light">
-                <tr>
-                  <th></th>
-                  <th class="text-num">รวมทั้งหมด</th>
-                  <th></th>
-                  <th></th>
-                  <th></th>
-                  <th></th>
-                  <th class="text-num">{{ car_table_totals.percent_ma|floatformat:2 }}%</th>
-                  <th class="text-num">{{ car_table_totals.avg_work_per_day|floatformat:2 }}</th>
-                  <th class="text-num">{{ car_table_totals.work_total|floatformat:2|intcomma }}</th>
-                  <th class="text-num">{{ car_table_totals.oil_total|floatformat:2|intcomma }}</th>
-                  <th class="text-num">{{ car_table_totals.fuel_rate|floatformat:2 }}</th>
-                  <th class="text-num">{{ car_table_totals.repair_total|floatformat:2|intcomma }}</th>
-                  <th class="text-num">{{ car_table_totals.repair_cost_per_hr|floatformat:2|intcomma }}</th>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
+
+  <!-- Repair + oil, with breakdowns beside them -->
+  <div class="dash-split">
+    <div class="dash-stack">
+      <div class="panel">
+        <div class="panel-head"><h5>ค่าใช้จ่ายซ่อมบำรุงรวม</h5><div class="panel-tools"><span class="panel-sub">บาท</span><button type="button" class="export-btn" data-export="chart-bymonth" data-title="ค่าใช้จ่ายซ่อมบำรุงรวม" data-unit="บาท" aria-label="ดาวน์โหลด Excel: ค่าใช้จ่ายซ่อมบำรุงรวม"><i class="fa-solid fa-file-excel"></i> Excel</button></div></div>
+        <div id="chart-bymonth"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h5>ปริมาณที่ใช้น้ำมันเชื้อเพลิงรวม</h5><div class="panel-tools"><span class="panel-sub">ลิตร</span><button type="button" class="export-btn" data-export="chart-oil" data-title="ปริมาณที่ใช้น้ำมันเชื้อเพลิงรวม" data-unit="ลิตร" aria-label="ดาวน์โหลด Excel: ปริมาณที่ใช้น้ำมันเชื้อเพลิงรวม"><i class="fa-solid fa-file-excel"></i> Excel</button></div></div>
+        <div id="chart-oil"></div>
+      </div>
+    </div>
+    <div class="dash-stack">
+      <div class="panel">
+        <div class="panel-head"><h5>ค่าซ่อมตามประเภทการซ่อม</h5><div class="panel-tools"><span class="panel-sub">บาท</span><button type="button" class="export-btn" data-export="chart-repair" data-title="ค่าซ่อมตามประเภทการซ่อม" data-unit="บาท" aria-label="ดาวน์โหลด Excel: ค่าซ่อมตามประเภทการซ่อม"><i class="fa-solid fa-file-excel"></i> Excel</button></div></div>
+        <div id="chart-repair"></div>
+        <div class="panel-total">รวม <strong>{{ repair_total|floatformat:2|intcomma }}</strong></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h5>ค่าใช้จ่ายแบ่งตามประเภทรถ</h5><div class="panel-tools"><span class="panel-sub">บาท</span><button type="button" class="export-btn" data-export="chart-cartype" data-title="ค่าใช้จ่ายแบ่งตามประเภทรถ" data-unit="บาท" aria-label="ดาวน์โหลด Excel: ค่าใช้จ่ายแบ่งตามประเภทรถ"><i class="fa-solid fa-file-excel"></i> Excel</button></div></div>
+        <div id="chart-cartype"></div>
+        <div class="panel-total">รวม <strong>{{ car_type_total|floatformat:2|intcomma }}</strong></div>
       </div>
     </div>
   </div>
-        <div class="col-lg-8">
-            <div class="row">
-                <div class="col-lg-12 d-flex align-items-center">
-                    <div class="card w-100">
-                        <div class="card-body">
-                            <div class="d-sm-flex d-block align-items-center justify-content-between mb-9">
-                                <div class="mb-3 mb-sm-0">
-                                    <h5 class="card-title fw-semibold">ค่าใช้จ่ายซ่อมบำรุงรวม (บาท)</h5>
-                                </div>
-                                <!--div> <select class="form-select"> <option value="1">March 2025</option> <option value="2">April 2025</option> <option value="3">May 2025</option> <option value="4">June 2025</option> </select> </!div-->
-                            </div>
-                            <div id="chart-bymonth"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-lg-12 d-flex align-items-center">
-                    <div class="card w-100">
-                        <div class="card-body">
-                            <div class="d-sm-flex d-block align-items-center justify-content-between mb-9">
-                                <div class="mb-3 mb-sm-0">
-                                    <h5 class="card-title fw-semibold">ปริมาณที่ใช้น้ำมันเชื้อเพลิงรวม (ลิตร)</h5>
-                                </div>
-                            </div>
-                            <div id="chart-oil"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4 d-flex align-items-center">
-            <div class="row">
-                <div class="col-lg-12">
-                    <div class="card bg-danger-subtle shadow-none">
-                        <div class="card-body">
-                            <div class="d-flex mb-10 pb-1 justify-content-between align-items-center">
-                                <div class="d-flex align-items-center gap-6">
-                                    <div
-                                        class="rounded-circle-shape bg-danger px-3 py-2 rounded-pill d-inline-flex align-items-center justify-content-center">
-                                        <iconify-icon icon="solar:users-group-rounded-bold-duotone"
-                                            class="fs-7 text-white"></iconify-icon> </div>
-                                    <h6 class="mb-0 fs-4 fw-medium text-muted"> ค่าใช้จ่ายซ่อมบำรุงรวม (บาท) </h6>
-                                </div>
-                                <!-- div class="dropdown dropstart"> <a href="javascript:void(0)" class="text-muted" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false"> <i class="ti ti-dots-vertical fs-6"></i> </a> <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton"> <li> <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)"><i class="fs-4 ti ti-plus"></i>Add</a> </li> <li> <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)"><i class="fs-4 ti ti-edit"></i>Edit</a> </li> <li> <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)"><i class="fs-4 ti ti-trash"></i>Delete</a> </li> </ul> </!-->
-                            </div>
-                            <div class="row align-items-end justify-content-between">
-                                <!--div class="col-5"> <h2 class="mb-6 fs-8">4,562</h2> <span class="badge rounded-pill border border-muted fw-bold text-muted fs-2 py-1">+23% last month</span> </!div-->
-                                <div class="col-12">
-                                    <div id="chart-repair"></div>
-                                </div>
-                            </div>
-                            <div class="row align-items-end justify-content-between float-end">
-                                <div class="col-12">
-                                    <h4 class="mb-6 fs-8 text-end">รวม {{repair_total|floatformat:2| intcomma}}</h4>
-                                    <!--span class="badge rounded-pill border border-muted fw-bold text-muted fs-2 py-1">+23% last month</!span-->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-12">
-                    <div class="card bg-secondary-subtle shadow-none">
-                        <div class="card-body">
-                            <div class="d-flex mb-10 pb-1 justify-content-between align-items-center">
-                                <div class="d-flex align-items-center gap-6">
-                                    <div
-                                        class="rounded-circle-shape bg-secondary px-3 py-2 rounded-pill d-inline-flex align-items-center justify-content-center">
-                                        <iconify-icon icon="solar:users-group-rounded-bold-duotone"
-                                            class="fs-7 text-white"></iconify-icon> </div>
-                                    <h6 class="mb-0 fs-4 fw-medium text-muted"> ค่าใช้จ่ายแบ่งตามประเภทรถ (บาท) </h6>
-                                </div>
-                            </div>
-                            <div class="row align-items-end justify-content-between">
-                                <!--div class="col-5"> <h2 class="mb-6 fs-8">4,562</h2> <span class="badge rounded-pill border border-muted fw-bold text-muted fs-2 py-1">+23% last month</span> </!div-->
-                                <div class="col-12">
-                                    <div id="chart-cartype"></div>
-                                </div>
-                            </div>
-                            <div class="row align-items-end justify-content-between float-end">
-                                <div class="col-12">
-                                    <h4 class="mb-6 fs-8 text-end">รวม {{car_type_total|floatformat:2| intcomma}}</h4>
-                                    <!--span class="badge rounded-pill border border-muted fw-bold text-muted fs-2 py-1">+23% last month</!span-->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    <div class="col-12">
-        <div class="row">
-            <div class="col-lg-12 d-flex align-items-center">
-                <div class="card w-100">
-                    <div class="card-body">
-                        <div class="d-sm-flex d-block align-items-center justify-content-between mb-9">
-                            <div class="mb-3 mb-sm-0">
-                                <h5 class="card-title fw-semibold">มิเตอร์ทำงานรวม (ชั่วโมง, กิโลเมตร)</h5>
-                            </div>
-                            <!--div> <select class="form-select"> <option value="1">March 2025</option> <option value="2">April 2025</option> <option value="3">May 2025</option> <option value="4">June 2025</option> </select> </!div-->
-                        </div>
-                        <div id="chart-work"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
+
+  <div class="dash-pair">
+    <div class="panel">
+      <div class="panel-head"><h5>มิเตอร์ทำงานรวม</h5><div class="panel-tools"><span class="panel-sub">ชั่วโมง, กิโลเมตร</span><button type="button" class="export-btn" data-export="chart-work" data-title="มิเตอร์ทำงานรวม" data-unit="ชั่วโมง, กิโลเมตร" aria-label="ดาวน์โหลด Excel: มิเตอร์ทำงานรวม"><i class="fa-solid fa-file-excel"></i> Excel</button></div></div>
+      <div id="chart-work"></div>
     </div>
-  <div class="col-12">
-      <div class="row">
-        <div class="col-lg-12 d-flex align-items-center">
-          <div class="card w-100">
-            <div class="card-body">
-              <div class="d-sm-flex d-block align-items-center justify-content-between mb-9">
-                <div class="mb-3 mb-sm-0">
-                  <h5 class="card-title fw-semibold">ค่าใช้จ่ายซ่อมบำรุงรวมตามทะเบียนรถ</h5>
-                </div>
-              </div>
-              <div id="chart-exp-by-car"></div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="panel">
+      <div class="panel-head"><h5>ค่าใช้จ่ายรวมต่อชั่วโมงการทำงาน</h5><div class="panel-tools"><span class="panel-sub">บาท/ชั่วโมง</span><button type="button" class="export-btn" data-export="chart-repair-work" data-title="ค่าใช้จ่ายรวมต่อชั่วโมงการทำงาน" data-unit="บาท/ชั่วโมง" aria-label="ดาวน์โหลด Excel: ค่าใช้จ่ายรวมต่อชั่วโมงการทำงาน"><i class="fa-solid fa-file-excel"></i> Excel</button></div></div>
+      <div id="chart-repair-work"></div>
     </div>
-    <div class="col-12">
-      <div class="row">
-        <div class="col-lg-12 d-flex align-items-center">
-          <div class="card w-100">
-            <div class="card-body">
-              <div class="d-sm-flex d-block align-items-center justify-content-between mb-9">
-                <div class="mb-3 mb-sm-0">
-                  <h5 class="card-title fw-semibold">ค่าใช้จ่ายรวม ต่อ ชั่วโมงการทำงาน (บาท/ชั่วโมง)</h5>
-                </div>
-              </div>
-              <div id="chart-repair-work"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h5>ค่าใช้จ่ายซ่อมบำรุงรวมตามทะเบียนรถ</h5><div class="panel-tools"><span class="panel-sub">บาท</span><button type="button" class="export-btn" data-export="chart-exp-by-car" data-title="ค่าใช้จ่ายซ่อมบำรุงรวมตามทะเบียนรถ" data-unit="บาท" aria-label="ดาวน์โหลด Excel: ค่าใช้จ่ายซ่อมบำรุงรวมตามทะเบียนรถ"><i class="fa-solid fa-file-excel"></i> Excel</button></div></div>
+    <div class="chart-scroll"><div id="chart-exp-by-car"></div></div>
+    <div class="scroll-hint">เลื่อนซ้าย-ขวาเพื่อดูรถทุกคัน</div>
+  </div>
+</div>
   <!--div class="row">
     <div class="col-lg-8 d-flex align-items-stretch">
       <div class="card w-100 overflow-hidden">
@@ -824,6 +1460,11 @@
     href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
 
 
+  <!-- SheetJS: สร้างไฟล์ Excel (.xlsx) จากข้อมูลกราฟ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+    integrity="sha512-r22gChDnGvBylk90+2e/ycr3RVrDi8DIOkIGNhJlKfuyQM4tIRAI062MaV8sfjQKYVGjOBaZBOA87z+IhZE9DA=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
   <!-- DataTables core -->
   <script src="https://cdn.datatables.net/2.3.8/js/dataTables.js"></script>
 
@@ -862,25 +1503,26 @@
               topStart: null,
               topEnd: 'search',
               bottomStart: 'info',
-              bottomEnd: 'paging'
+              // จอมือถือแสดงปุ่มเลขหน้าน้อยลง ไม่ให้ล้นจอ
+              bottomEnd: {
+                  paging: {
+                      buttons: window.matchMedia('(max-width: 575.98px)').matches ? 3 : 7
+                  }
+              }
           }
       });
     });
 
     //////////////////  start select row car  //////////////////////////
-    const selectCarCode = "{{ car_code }}";
-    const selectBranchCompanyId = "{{ request.GET.branch_company_id|default:'' }}";
-
-    const rows = document.querySelectorAll('#carTable .row-click');
     const selectedCarTypeId = "{{ selected_car_type_id }}";
 
     $('#carTable tbody').on('click', 'tr.row-click', function () {
 
-        const carCode = this.dataset.carCode;
+        const carId = this.dataset.carId;
         const branchCompanyId = this.dataset.branchCompanyId;
         const params = new URLSearchParams();
 
-        params.set('car_code', carCode);
+        params.set('car_id', carId);
         params.set('branch_company_id', branchCompanyId);
 
         if (selectedCarTypeId !== 'all') {
@@ -912,27 +1554,226 @@
       $('#id_car_type').select2({ width: "100%", theme: 'bootstrap-5' });
     });
 
+    // ชุดสีหลักของ dashboard (ใช้ร่วมกันทุกกราฟ) — ลำดับนี้ผ่านการตรวจแยกสีสำหรับคนตาบอดสีแล้ว ห้ามสลับลำดับ
+    const CHART_PALETTE = [
+      '#2a78d6', '#eb6834', '#1baf7a', '#eda100',
+      '#e87ba4', '#008300', '#4a3aa7', '#e34948'
+    ];
+    // สีประจำข้อมูล: ข้อมูลเดียวกันใช้สีเดียวกันทุกกราฟ
+    const CHART_REPAIR = CHART_PALETTE[0];   // ค่าใช้จ่ายซ่อม - น้ำเงิน
+    const CHART_LINE = CHART_PALETTE[1];     // เส้นอัตรา/เปอร์เซ็นต์ - ส้ม
+    const CHART_OIL = CHART_PALETTE[2];      // น้ำมัน - เขียวน้ำทะเล
+    const CHART_WORK = CHART_PALETTE[6];     // ชั่วโมงทำงาน - ม่วง
+    const CHART_FAILURE = CHART_PALETTE[7];  // จำนวนครั้งที่เสีย - แดง
+
     function generateStablePastelColors(labels) {
-      const total = labels.length;
-
-      return labels.map((label, index) => {
-        // hash จาก label (ทำให้ stable)
-        let hash = 0;
-        for (let i = 0; i < label.length; i++) {
-          hash = label.charCodeAt(i) + ((hash << 5) - hash);
-        }
-
-        // กระจายสีหลักตาม index (ไม่ให้ชน)
-        let baseHue = Math.floor((index / total) * 360);
-
-        // เอา hash มาช่วยขยับเล็กน้อย (ไม่ให้ pattern แข็งเกิน)
-        let offset = hash % 20;
-
-        let hue = (baseHue + offset) % 360;
-
-        return `hsl(${hue}, 100%, 71%)`; // pastel
-      });
+      return labels.map((label, index) => CHART_PALETTE[index % CHART_PALETTE.length]);
     }
+
+    // ค่าเริ่มต้นของทุกกราฟ
+    window.Apex = {
+      chart: {
+        fontFamily: '"IBM Plex Sans Thai", "Inter", sans-serif',
+        foreColor: '#5B6577',
+        toolbar: { show: false },
+        animations: { speed: 400 }
+      },
+      grid: {
+        borderColor: '#EBEEF2',
+        strokeDashArray: 4
+      },
+      legend: {
+        fontSize: '13px',
+        markers: { radius: 12 }
+      },
+      dataLabels: {
+        style: { fontWeight: 500 }
+      },
+      tooltip: { theme: 'light' },
+      stroke: { curve: 'smooth' },
+      markers: { size: 4, strokeWidth: 2, strokeColors: '#fff' },
+      plotOptions: {
+        bar: { borderRadius: 6, columnWidth: '55%' },
+        pie: { donut: { size: '62%' } }
+      }
+    };
+
+    // ปรับกราฟสำหรับจอมือถือ (< 576px): ซ่อนตัวเลขบนกราฟ (แตะดูได้จาก tooltip),
+    // ซ่อนชื่อแกน, ลดความสูง, เอียงชื่อเดือน — ใช้ responsive ของ Apex จึงเปลี่ยนตามการหมุนจอด้วย
+    const compactFormat = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+    function compactNumber(val) {
+      return val == null ? '' : compactFormat.format(val);
+    }
+
+    function mobileChart(opts) {
+      const type = opts.chart && opts.chart.type;
+      let small;
+
+      if (type === 'pie' || type === 'donut') {
+        small = {
+          legend: { position: 'bottom', fontSize: '12px' },
+          // โดนัทชิ้นเล็กเยอะ ตัวเลขจะทับกัน ดู % จาก tooltip แทน
+          dataLabels: { enabled: type === 'pie', style: { fontSize: '10px' } }
+        };
+      } else {
+        small = {
+          chart: { height: Math.min((opts.chart && opts.chart.height) || 260, 240) },
+          dataLabels: { enabled: false },
+          legend: { fontSize: '12px' },
+          xaxis: { labels: { rotate: -45, rotateAlways: true, style: { fontSize: '11px' } } }
+        };
+        if (Array.isArray(opts.yaxis)) {
+          // ตัวเลขแกนแบบย่อ (150K, 1.2M) ให้พื้นที่กราฟกว้างขึ้น
+          small.yaxis = opts.yaxis.map(y => Object.assign({}, y, {
+            title: { text: undefined },
+            labels: Object.assign({}, y.labels, { formatter: compactNumber, style: { fontSize: '11px' } })
+          }));
+        }
+      }
+
+      opts.responsive = (opts.responsive || []).concat([{ breakpoint: 576, options: small }]);
+      return opts;
+    }
+
+    // ---------- Export Excel ----------
+    const CHARTS = {};
+    function registerChart(id, chart) {
+      CHARTS[id] = chart;
+    }
+
+    function textOf(selector) {
+      const el = document.querySelector(selector);
+      return el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
+    }
+
+    // ตัวกรองที่ใช้อยู่ ใส่ไว้หัวไฟล์ให้รู้ว่าเป็นข้อมูลชุดไหน
+    function exportFilters() {
+      const carType = document.getElementById('id_car_type');
+      return [
+        ['บริษัท', textOf('.dash-header p')],
+        ['แผนก', textOf('.dash-toolbar .tab-radio:checked + .tab')],
+        ['ประเภทรถ', carType ? carType.options[carType.selectedIndex].text.trim() : ''],
+        ['รถ', textOf('.car-chip').replace('กำลังดูข้อมูล', '').trim() || 'ทุกคัน'],
+      ];
+    }
+
+    function round2(v) {
+      return Math.round(v * 100) / 100;
+    }
+
+    function chartRows(chart) {
+      // ใช้ options ตั้งต้น (chart.opts) เพราะหลัง render Apex ย้าย labels ของกราฟแท่ง+เส้นออกจาก w.config
+      const cfg = chart.opts;
+      const type = cfg.chart.type;
+
+      // กราฟวงกลม: รายการ / มูลค่า / สัดส่วน
+      if (type === 'pie' || type === 'donut') {
+        const values = cfg.series.map(v => Number(v) || 0);
+        const total = values.reduce((a, b) => a + b, 0);
+        const rows = [['รายการ', 'มูลค่า', 'สัดส่วน (%)']];
+        cfg.labels.forEach((label, i) => {
+          rows.push([label, round2(values[i]), total ? round2(values[i] / total * 100) : 0]);
+        });
+        rows.push(['รวม', round2(total), total ? 100 : 0]);
+        return rows;
+      }
+
+      // กราฟแท่ง/เส้น: 1 แถวต่อ 1 หมวด, 1 คอลัมน์ต่อ 1 ชุดข้อมูล
+      const categories = (cfg.xaxis && cfg.xaxis.categories && cfg.xaxis.categories.length)
+        ? cfg.xaxis.categories
+        : (cfg.labels || []);
+      const rows = [['รายการ'].concat(cfg.series.map(s => s.name))];
+      categories.forEach((cat, i) => {
+        rows.push([cat].concat(cfg.series.map(s => {
+          let v = s.data[i];
+          if (v != null && typeof v === 'object') v = v.y;
+          return v == null ? '' : (typeof v === 'number' ? round2(v) : v);
+        })));
+      });
+      return rows;
+    }
+
+    function safeSheetName(name) {
+      return name.replace(/[\\\/\?\*\[\]:]/g, ' ').slice(0, 31);
+    }
+
+    // สร้างไฟล์: หัวไฟล์ (ชื่อ, หน่วย, ตัวกรอง) + ตารางข้อมูล
+    function downloadExcel(title, unit, data, extraHeader) {
+      if (typeof XLSX === 'undefined') {
+        alert('โหลดตัวสร้างไฟล์ Excel ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองอีกครั้ง');
+        return;
+      }
+
+      const header = [[title], ['หน่วย', unit || '-']]
+        .concat(exportFilters())
+        .concat(extraHeader || [])
+        .concat([['ดาวน์โหลดเมื่อ', new Date().toLocaleString('th-TH')], []]);
+      const all = header.concat(data);
+      const sheet = XLSX.utils.aoa_to_sheet(all);
+
+      // ความกว้างคอลัมน์ตามข้อความที่ยาวที่สุด (ไม่นับชื่อไฟล์แถวแรก ไม่ให้คอลัมน์ A กว้างเกิน)
+      const colCount = Math.max(...all.map(r => r.length));
+      sheet['!cols'] = Array.from({ length: colCount }, (_, c) => ({
+        wch: Math.min(40, Math.max(10, ...all.slice(1).map(r => String(r[c] == null ? '' : r[c]).length + 2)))
+      }));
+
+      const book = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(book, sheet, safeSheetName(title));
+      const today = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(book, title + ' ' + today + '.xlsx');
+    }
+
+    function exportChartExcel(chartId, title, unit) {
+      const chart = CHARTS[chartId];
+      if (!chart) return;
+      downloadExcel(title, unit, chartRows(chart));
+    }
+
+    // ข้อความในเซลล์ตัวเลข "7,946.00" / "2257.39%" / "-" -> ตัวเลขจริง ให้ Excel คำนวณต่อได้
+    function cellValue(cell) {
+      const text = cell.textContent.replace(/\s+/g, ' ').trim();
+      if (!cell.classList.contains('text-num')) return text;
+      if (text === '' || text === '-') return '';
+      const num = Number(text.replace(/,/g, '').replace('%', ''));
+      return isNaN(num) ? text : num;
+    }
+
+    // ตารางรายการรถ: ทุกแถว (ทุกหน้า) ตามคำค้นและการเรียงที่ใช้อยู่ + แถวรวม
+    function exportTableExcel(title) {
+      const table = $('#carTable').DataTable();
+      const head = [...document.querySelectorAll('#carTable thead th')]
+        .map(th => th.innerHTML.replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim());
+
+      const rows = table.rows({ search: 'applied', order: 'applied' }).nodes().toArray()
+        .map(tr => {
+          const row = [...tr.cells].map(cellValue);
+          row[0] = Number(row[0]) || row[0]; // คอลัมน์ No. เป็นตัวเลข
+          return row;
+        });
+
+      const search = table.search();
+      if (search) {
+        // แถวรวมในหน้าเว็บคำนวณจากรถทุกคัน ไม่ตรงกับผลค้นหา จึงไม่ใส่
+        downloadExcel(title, 'ตามหัวคอลัมน์', [head].concat(rows), [
+          ['คำค้นหา', search],
+          ['หมายเหตุ', 'ไม่มีแถวรวม เพราะยอดรวมในหน้าเว็บคิดจากรถทุกคัน'],
+        ]);
+        return;
+      }
+
+      const foot = [...document.querySelectorAll('#carTable tfoot th')].map(cellValue);
+      downloadExcel(title, 'ตามหัวคอลัมน์', [head].concat(rows, [foot]));
+    }
+
+    document.addEventListener('click', function (e) {
+      const btn = e.target.closest('.export-btn');
+      if (!btn) return;
+      if (btn.dataset.export === 'carTable') {
+        exportTableExcel(btn.dataset.title);
+      } else {
+        exportChartExcel(btn.dataset.export, btn.dataset.title, btn.dataset.unit);
+      }
+    });
 
     //move glider
     const tabs = document.querySelector(".tabs");
@@ -946,15 +1787,42 @@
       glider.style.transform = `translateX(${index * 100}%)`;
     }
 
+    // set initial: วางตำแหน่งทันที ไม่ให้เลื่อนมาจากซ้ายทุกครั้งที่โหลดหน้า
+    tabs.classList.add("no-anim");
     radios.forEach((radio, index) => {
-      radio.addEventListener("change", () => {
-        moveGlider(index);
-      });
-
-      // set initial
       if (radio.checked) {
         moveGlider(index);
       }
+    });
+    glider.getBoundingClientRect(); // force reflow ก่อนเปิด transition
+    tabs.classList.remove("no-anim");
+
+    // รอให้ glider เลื่อนจบก่อนค่อยโหลดหน้าใหม่ ไม่งั้นแอนิเมชันถูกตัด
+    function goAfterGlide() {
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const gliderHidden = getComputedStyle(glider).display === "none";
+
+      if (reduceMotion || gliderHidden) {
+        getApiDataToDashbord();
+        return;
+      }
+
+      let done = false;
+      const go = () => {
+        if (done) return;
+        done = true;
+        getApiDataToDashbord();
+      };
+
+      glider.addEventListener("transitionend", go, { once: true });
+      setTimeout(go, 500); // กันกรณี transitionend ไม่ยิง
+    }
+
+    radios.forEach((radio, index) => {
+      radio.addEventListener("change", () => {
+        moveGlider(index);
+        goAfterGlide();
+      });
     });
 
     //Predefined Date Ranges
@@ -1034,18 +1902,19 @@
       series: {{ repair_series|safe }},
 
       chart: {
-        width: 325,
+        width: '100%',
         type: 'donut',
 
         toolbar: {
-          show: true,
-          tools: {
-            download: true
-          }
+          show: false
         }
       },
 
       labels: rp_labels,
+
+      stroke: { width: 2, colors: ['#fff'] },
+
+      legend: { position: 'bottom' },
 
       tooltip: {
         y: {
@@ -1058,24 +1927,12 @@
         }
       },
 
-      colors: colors,
-
-      responsive: [{
-        breakpoint: 480,
-        options: {
-          chart: {
-            width: 200
-          },
-          legend: {
-            position: 'bottom'
-          }
-        }
-      }]
+      colors: colors
     };
 
     var chartRepair = new ApexCharts(
       document.querySelector("#chart-repair"),
-      optionsRepair
+      mobileChart(optionsRepair)
     );
 
     chartRepair.render();
@@ -1089,18 +1946,21 @@
       series: {{ car_type_series|safe }},
 
       chart: {
-        width: 325,
+        width: '100%',
         type: 'pie',
 
         toolbar: {
-          show: true,
-          tools: {
-            download: true
-          }
+          show: false
         }
       },
 
       labels: ct_labels,
+
+      colors: colors,
+
+      stroke: { width: 2, colors: ['#fff'] },
+
+      legend: { position: 'bottom' },
 
       tooltip: {
         y: {
@@ -1113,20 +1973,9 @@
         }
       },
 
-      responsive: [{
-        breakpoint: 480,
-        options: {
-          chart: {
-            width: 200
-          },
-          legend: {
-            position: 'bottom'
-          }
-        }
-      }]
     };
 
-    var chartCartype = new ApexCharts(document.querySelector("#chart-cartype"), optionsCartype);
+    var chartCartype = new ApexCharts(document.querySelector("#chart-cartype"), mobileChart(optionsCartype));
     chartCartype.render();
 
 
@@ -1135,13 +1984,13 @@
 
     var optionsByMonth = {
       series: [{
-        name: 'Inflation',
+        name: 'ค่าใช้จ่ายซ่อมบำรุง',
         data: {{ bymonth_series|safe }},
       }],
 
-      colors: colors,
+      colors: [CHART_REPAIR],
       chart: {
-        height: 213,
+        height: 260,
         type: 'bar',
       },
 
@@ -1157,8 +2006,8 @@
           dataLabels: {
             position: 'top',
           },
-          distributed: true,   // สำคัญมาก
-          borderRadius: 2
+          distributed: false,
+          borderRadius: 6
         }
       },
 
@@ -1173,7 +2022,7 @@
         offsetY: -20,
         style: {
           fontSize: '12px',
-          colors: ["#304758"]
+          colors: ["#172033"]
         }
       },
 
@@ -1190,8 +2039,8 @@
           fill: {
             type: 'gradient',
             gradient: {
-              colorFrom: '#D8E3F0',
-              colorTo: '#BED1E6',
+              colorFrom: '#E4EEFB',
+              colorTo: '#E4EEFB',
               stops: [0, 100],
               opacityFrom: 0.4,
               opacityTo: 0.5,
@@ -1223,18 +2072,12 @@
         }
       },
 
-      title: {
-        text: 'Monthly Report',
-        floating: true,
-        offsetY: 330,
-        align: 'center',
-        style: {
-          color: '#444'
-        }
+      legend: {
+        show: false
       }
     };
 
-    var chartByMonth = new ApexCharts(document.querySelector("#chart-bymonth"), optionsByMonth);
+    var chartByMonth = new ApexCharts(document.querySelector("#chart-bymonth"), mobileChart(optionsByMonth));
     chartByMonth.render();
 
     var optionsOil = {
@@ -1249,18 +2092,19 @@
       }],
 
       chart: {
-        height: 213,
+        height: 280,
         type: 'line',
       },
 
-      colors: ['#2899FB', '#FB8A28'], // 👈 เพิ่มตรงนี้
+      colors: [CHART_OIL, CHART_LINE],
 
       stroke: {
-        width: [0, 4]
+        width: [0, 3]
       },
 
       dataLabels: {
-        enabled: true, // show all labels
+        enabled: true,
+        enabledOnSeries: [1], // แสดงค่าบนเส้น ส่วนแท่งดูได้จาก tooltip
 
         formatter: function (val, opts) {
 
@@ -1310,7 +2154,7 @@
       }]
     };
 
-  var chartOil = new ApexCharts(document.querySelector("#chart-oil"), optionsOil);
+  var chartOil = new ApexCharts(document.querySelector("#chart-oil"), mobileChart(optionsOil));
   chartOil.render();
 
 
@@ -1326,18 +2170,19 @@
       }],
 
       chart: {
-        height: 213,
+        height: 280,
         type: 'line',
       },
 
-      colors: ['#E7553C', '#3CCDE7'], // 👈 เพิ่มตรงนี้
+      colors: [CHART_WORK, CHART_LINE],
       
       stroke: {
-        width: [0, 4]
+        width: [0, 3]
       },
 
       dataLabels: {
-        enabled: true, // show all labels
+        enabled: true,
+        enabledOnSeries: [1], // แสดงค่าบนเส้น ส่วนแท่งดูได้จาก tooltip
 
         formatter: function (val, opts) {
 
@@ -1386,7 +2231,7 @@
       }]
     };
 
-  var chartWork = new ApexCharts(document.querySelector("#chart-work"), optionsWork);
+  var chartWork = new ApexCharts(document.querySelector("#chart-work"), mobileChart(optionsWork));
   chartWork.render();
 
   var ebc_labels = {{ expbycar_labels| safe }};
@@ -1394,18 +2239,18 @@
 
   var optionsExpByCar = 	{
           series: [{
-          name: 'Inflation',
+          name: 'ค่าใช้จ่ายซ่อมบำรุง',
           data: {{ expbycar_series|safe }},
         }],
         chart: {
           height: 350,
           type: 'bar',
         },
-        colors: colors, // << เพิ่มตรงนี้
+        colors: [CHART_REPAIR],
         plotOptions: {
           bar: {
-            borderRadius: 5,
-            distributed: true, // << เพิ่มตรงนี้
+            borderRadius: 6,
+            distributed: false,
             dataLabels: {
               position: 'top', // top, center, bottom
             },
@@ -1419,13 +2264,13 @@
           offsetY: -20,
           style: {
             fontSize: '12px',
-            colors: ["#304758"]
+            colors: ["#172033"]
           }
         },
         
         xaxis: {
           categories: ebc_labels,
-          position: 'top',
+          position: 'bottom',
           axisBorder: {
             show: false
           },
@@ -1436,8 +2281,8 @@
             fill: {
               type: 'gradient',
               gradient: {
-                colorFrom: '#D8E3F0',
-                colorTo: '#BED1E6',
+                colorFrom: '#E4EEFB',
+                colorTo: '#E4EEFB',
                 stops: [0, 100],
                 opacityFrom: 0.4,
                 opacityTo: 0.5,
@@ -1463,17 +2308,14 @@
           }
         
         },
-        title: {
-          floating: true,
-          offsetY: 330,
-          align: 'center',
-          style: {
-            color: '#444'
-          }
+        legend: {
+          show: false
         }
         };
 
-    var chartExpByCar = new ApexCharts(document.querySelector("#chart-exp-by-car"), optionsExpByCar);
+    // ให้แต่ละแท่งกว้างพอ อ่านชื่อรถได้ ถ้าจอแคบจะเลื่อนซ้าย-ขวาได้
+    document.querySelector("#chart-exp-by-car").style.minWidth = (ebc_labels.length * 24) + 'px';
+    var chartExpByCar = new ApexCharts(document.querySelector("#chart-exp-by-car"), mobileChart(optionsExpByCar));
     chartExpByCar.render();
 
     var optionsRepairWork = {
@@ -1488,19 +2330,20 @@
       }],
 
       chart: {
-        height: 213,
+        height: 280,
         type: 'line',
       },
 
       // set colors
-      colors: ['#C954CF', '#5ACF54'], // purple, yellow
+      colors: [CHART_REPAIR, CHART_WORK],
 
       stroke: {
-        width: [0, 4]
+        width: [0, 3]
       },
 
       dataLabels: {
         enabled: true,
+        enabledOnSeries: [1],
 
         formatter: function (val, opts) {
 
@@ -1550,27 +2393,111 @@
       }]
     };
 
-  var chartRepairWork = new ApexCharts(document.querySelector("#chart-repair-work"), optionsRepairWork);
+  var chartRepairWork = new ApexCharts(document.querySelector("#chart-repair-work"), mobileChart(optionsRepairWork));
   chartRepairWork.render();
+
+  registerChart("chart-repair", chartRepair);
+  registerChart("chart-cartype", chartCartype);
+  registerChart("chart-bymonth", chartByMonth);
+  registerChart("chart-oil", chartOil);
+  registerChart("chart-work", chartWork);
+  registerChart("chart-exp-by-car", chartExpByCar);
+  registerChart("chart-repair-work", chartRepairWork);
   
+  {% if reliability.failure_count %}
+  // แกนจำนวนครั้งเป็นจำนวนเต็มเท่านั้น
+  var relCounts = {{ reliability.trend_count|safe }};
+  var topCounts = {{ reliability.top_count|safe }};
+  var relMaxCount = Math.max(1, ...relCounts);
+  var topMaxCount = Math.max(1, ...topCounts);
+
+  var optionsReliability = {
+    series: [{
+      name: 'จำนวนครั้งที่เสีย',
+      type: 'column',
+      data: relCounts
+    }, {
+      name: 'เวลาซ่อมเฉลี่ย (ชม.)',
+      type: 'line',
+      data: {{ reliability.trend_mttr|safe }}
+    }],
+    chart: { height: 280, type: 'line' },
+    colors: [CHART_FAILURE, CHART_REPAIR],
+    stroke: { width: [0, 3] },
+    labels: {{ reliability.trend_labels|safe }},
+    dataLabels: {
+      enabled: true,
+      enabledOnSeries: [0],
+      formatter: function (val) { return val ? val : ''; }
+    },
+    yaxis: [{
+      title: { text: 'ครั้ง' },
+      min: 0,
+      max: relMaxCount,
+      tickAmount: relMaxCount,
+      labels: { formatter: function (val) { return Math.round(val); } }
+    }, {
+      opposite: true,
+      title: { text: 'ชม.' },
+      min: 0,
+      labels: { formatter: function (val) { return val == null ? '' : val.toLocaleString('en-US', { maximumFractionDigits: 1 }); } }
+    }],
+    tooltip: {
+      y: {
+        formatter: function (val, opts) {
+          if (val == null) return '-';
+          return opts.seriesIndex === 0 ? val + ' ครั้ง' : val.toLocaleString('en-US', { maximumFractionDigits: 1 }) + ' ชม.';
+        }
+      }
+    }
+  };
+  var chartReliability = new ApexCharts(document.querySelector("#chart-reliability"), mobileChart(optionsReliability));
+  chartReliability.render();
+  registerChart("chart-reliability", chartReliability);
+
+  var optionsTopFailures = {
+    series: [{ name: 'จำนวนครั้งที่เสีย', data: topCounts }],
+    chart: { height: 280, type: 'bar' },
+    colors: [CHART_FAILURE],
+    plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: '60%' } },
+    dataLabels: { enabled: true, formatter: function (val) { return val + ' ครั้ง'; } },
+    xaxis: {
+      categories: {{ reliability.top_labels|safe }},
+      min: 0,
+      max: topMaxCount,
+      tickAmount: topMaxCount,
+      labels: { formatter: function (val) { return Math.round(val); } }
+    },
+    legend: { show: false },
+    tooltip: { y: { formatter: function (val) { return val + ' ครั้ง'; } } }
+  };
+  var chartTopFailures = new ApexCharts(document.querySelector("#chart-top-failures"), mobileChart(optionsTopFailures));
+  chartTopFailures.render();
+  registerChart("chart-top-failures", chartTopFailures);
+  {% endif %}
+
   function updateValueAPI() {
+    const btn = document.getElementById('updateValueBtn');
+    const btnHtml = btn.innerHTML;
+
+    // ดึงข้อมูลใช้เวลาหลายวินาที กันกดซ้ำและบอกสถานะ
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> กำลังอัปเดต...';
+
     $.ajax({
       url: '{% url "updateValueAPI" %}',
       type: 'GET',
-      data: {
-          
-      },
       dataType: 'json',
       success: function (data) {
-        if (data) {
-          location.reload();
-          e.preventDefault();
-        } else {
-
+        if (data && data.maintenance === false) {
+          alert('อัปเดตข้อมูลแล้ว แต่ดึงใบแจ้งซ่อมไม่ได้ ตรวจสอบว่าเซิร์ฟเวอร์ API สำหรับใบแจ้งซ่อมเปิดอยู่');
         }
+        location.reload();
       },
       error: function (xhr, status, error) {
-        alert('error = ' + error);
+        btn.disabled = false;
+        btn.innerHTML = btnHtml;
+        alert('อัปเดตข้อมูลไม่สำเร็จ (' + (xhr.status || status) + ') ลองกดอีกครั้ง');
       }
     });
     return false;

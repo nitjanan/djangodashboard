@@ -402,3 +402,73 @@ class SummaryWork(models.Model):
 
     def __str__(self):
         return f'{self.year}-{self.month}:{self.car}'
+
+
+class SummaryMaintenance(models.Model):
+    # ใบแจ้งซ่อมรายใบ จาก webstock (ใช้คำนวณ MTBF / MTTR)
+    ext_id = models.BigIntegerField(unique=True)
+
+    # ใช้แทน year + month สำหรับ query/filter (วันที่ 1 ของเดือนที่แจ้งซ่อม)
+    summary_date = models.DateField(
+        db_index=True,
+        null=True,
+        blank=True
+    )
+
+    year = models.IntegerField()
+    month = models.IntegerField()
+
+    reported_at = models.DateTimeField()  # วันเวลาแจ้งซ่อม (รถเสีย)
+    finished_at = models.DateTimeField(null=True, blank=True)  # วันเวลาหัวหน้าช่างปิดงาน (ซ่อมเสร็จ)
+    mile = models.IntegerField(null=True, blank=True)  # เลขไมล์/เลขชั่วโมง ตอนแจ้งซ่อม
+
+    ma_type = models.CharField(  # 01 สั่งทำ, 02 ซ่อม, 03 ติดตั้ง, 04 ทำ PM
+        max_length=10, blank=False, null=True
+    )
+    car_state = models.CharField(
+        max_length=255, blank=False, null=True
+    )
+    is_complete = models.BooleanField(null=True, blank=True)
+
+    branch_company = models.ForeignKey(BaseBranchCompany,on_delete=models.CASCADE,null=True, blank=True)
+    car_dep = models.ForeignKey(
+        BaseCarDepartment,
+        on_delete=models.PROTECT,
+        null=True, blank=True
+    )
+
+    car = models.ForeignKey(
+        BaseCar,
+        on_delete=models.PROTECT,
+        null=True, blank=True
+    )
+
+    v_stamp = models.DateTimeField(
+        auto_now=True
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+
+        db_table = 'sum_maintenance'
+        indexes = [
+            models.Index(
+                fields=[
+                    'summary_date'
+                ],
+                name='ma_summary_date_idx'
+            ),
+            # query branch + dep
+            models.Index(
+                fields=[
+                    'branch_company',
+                    'car_dep'
+                ],
+                name='ma_branch_dep_idx'
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.ext_id}:{self.car}'

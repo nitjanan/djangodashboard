@@ -13,8 +13,8 @@ def userVisibleTab(request):
 def companyVisibleTab(request):
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
-        company_tab = BaseBranchCompany.objects.filter(userprofile = user_profile)
-        company_code = BaseBranchCompany.objects.filter(userprofile = user_profile).values('code')
+        # เรียงตามรหัสบริษัท (00 ทั้งหมด, 01, 02, ...) ให้ลำดับแท็บคงที่
+        company_tab = BaseBranchCompany.objects.filter(userprofile = user_profile).order_by('id')
     except:
         company_tab = None
 
